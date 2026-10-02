@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, Mail, MapPin, ShieldCheck, Heart } from 'lucide-react';
+import { Phone, Mail, MapPin, Heart } from 'lucide-react';
 
 export default function Footer({ onNavigate }) {
   return (
@@ -112,7 +112,7 @@ export default function Footer({ onNavigate }) {
           </div>
           <div className="tech-item">
             <span style={{ color: '#38BDF8' }}>🔒</span>
-            <span><strong>Supabase &amp; Auth</strong> Ready</span>
+            <span><strong>Supabase Auth</strong> Google OAuth</span>
           </div>
           <div className="tech-item">
             <span style={{ color: '#F97316' }}>✉️</span>

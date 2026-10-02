@@ -1,5 +1,16 @@
 # React + Vite
 
+## Google sign-in setup
+
+The account page uses Supabase Auth with Google OAuth. Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the Supabase project API settings. Only the publishable key belongs in client-side environment variables; never use the Supabase secret key in a `VITE_` variable.
+
+In Supabase, enable Google under **Authentication → Sign In / Providers**, then set the **Site URL** to `https://chygodwinfoods.netlify.app` and allow these redirect URLs:
+
+- `https://chygodwinfoods.netlify.app/`
+- `http://localhost:5173/`
+
+Add the Supabase callback URL (`https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`) to the authorized redirect URIs in the Google OAuth client. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to the Netlify project's environment variables, then trigger a new deploy.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomeView from './views/HomeView';
@@ -10,7 +10,8 @@ import AccountView from './views/AccountView';
 import AdminView from './views/AdminView';
 import MobilePhoneMockup from './views/MobilePhoneMockup';
 import { PRODUCTS, INITIAL_ORDERS } from './data/products';
-import { Check, Sparkles } from 'lucide-react';
+import { Check } from 'lucide-react';
+import { isSupabaseConfigured, supabase } from './supabase';
 
 export default function App() {
   const [activeView, setActiveView] = useState('home');
@@ -40,6 +41,38 @@ export default function App() {
   const [wishlist, setWishlist] = useState(['golden-penny-gari-10kg', 'dried-beans-1kg']);
   const [orders, setOrders] = useState(INITIAL_ORDERS);
   const [toast, setToast] = useState(null);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
+  const [authError, setAuthError] = useState('');
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+
+    let isMounted = true;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (!isMounted) return;
+        if (error) setAuthError(error.message);
+        setUser(session?.user ?? null);
+        setAuthLoading(false);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setAuthError('Unable to check your sign-in status. Please try again.');
+        setAuthLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const showToast = (message) => {
     setToast(message);
@@ -94,6 +127,34 @@ export default function App() {
   const handleOrderPlaced = (newOrder) => {
     setOrders((prev) => [newOrder, ...prev]);
     showToast(`Order #${newOrder.id} successfully created!`);
+  };
+
+  const handleGoogleSignIn = async () => {
+    setAuthError('');
+    if (!supabase) {
+      setAuthError('Google sign-in is not configured for this deployment.');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin }
+      });
+      if (error) setAuthError(error.message);
+    } catch {
+      setAuthError('Unable to start Google sign-in. Please try again.');
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase) return;
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+    setActiveView('home');
   };
 
   const totalCartCount = cartItems.reduce((acc, it) => acc + it.quantity, 0);
@@ -205,11 +266,18 @@ export default function App() {
 
         {activeView === 'account' && (
           <AccountView
-            orders={orders}
+            orders={user?.email
+              ? orders.filter((order) => order.email?.toLowerCase() === user.email.toLowerCase())
+              : []}
             cartCount={totalCartCount}
             wishlist={wishlist}
+            user={user}
+            authLoading={authLoading}
+            authConfigured={isSupabaseConfigured}
+            authError={authError}
+            onGoogleSignIn={handleGoogleSignIn}
+            onSignOut={handleSignOut}
             onNavigate={setActiveView}
-            onSelectProduct={handleSelectProduct}
           />
         )}
 

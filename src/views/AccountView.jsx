@@ -7,19 +7,21 @@ import {
   Heart,
   Settings,
   LogOut,
-  ChevronRight,
-  ExternalLink,
-  PhoneCall,
+  LogIn,
   Search
 } from 'lucide-react';
-import { PRODUCTS } from '../data/products';
 
 export default function AccountView({
   orders,
   cartCount,
   wishlist,
-  onNavigate,
-  onSelectProduct
+  user,
+  authLoading,
+  authConfigured,
+  authError,
+  onGoogleSignIn,
+  onSignOut,
+  onNavigate
 }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [trackingSearch, setTrackingSearch] = useState('');
@@ -34,6 +36,56 @@ export default function AccountView({
     setTrackingResult(found || 'not-found');
   };
 
+  const displayName = user?.user_metadata?.full_name
+    || user?.user_metadata?.name
+    || user?.email?.split('@')[0]
+    || 'Your account';
+
+  if (authLoading) {
+    return (
+      <div className="section-pad">
+        <div className="section-container" role="status">Checking your sign-in status...</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="section-pad">
+        <div className="section-container" style={{ maxWidth: 560 }}>
+          <div className="form-card" style={{ textAlign: 'center', padding: '40px 28px' }}>
+            <LogIn size={28} color="#0C6837" style={{ marginBottom: 12 }} />
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#062E1D', marginBottom: 8 }}>
+              Sign in to your account
+            </h1>
+            <p style={{ color: '#64748B', marginBottom: 24 }}>
+              Continue with Google to view your account and orders.
+            </p>
+            {authError && (
+              <p role="alert" style={{ color: '#B91C1C', marginBottom: 16 }}>
+                {authError}
+              </p>
+            )}
+            {!authConfigured && (
+              <p role="status" style={{ color: '#64748B', marginBottom: 16 }}>
+                Google sign-in is not configured for this deployment yet.
+              </p>
+            )}
+            <button
+              className="btn-primary-pill"
+              style={{ justifyContent: 'center' }}
+              onClick={onGoogleSignIn}
+              disabled={!authConfigured}
+            >
+              <LogIn size={18} />
+              Continue with Google
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="section-pad">
       <div className="section-container">
@@ -41,10 +93,10 @@ export default function AccountView({
           {/* Sidebar */}
           <aside className="dashboard-sidebar">
             <div className="user-profile-widget">
-              <div className="user-avatar">J</div>
+              <div className="user-avatar">{displayName.charAt(0).toUpperCase()}</div>
               <div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#062E1D' }}>John Doe</h4>
-                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>john@example.com</span>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#062E1D' }}>{displayName}</h4>
+                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{user.email}</span>
               </div>
             </div>
 
@@ -99,7 +151,7 @@ export default function AccountView({
             <button
               className="dash-nav-btn"
               style={{ color: '#DC2626', marginTop: 12 }}
-              onClick={() => onNavigate('home')}
+              onClick={onSignOut}
             >
               <LogOut size={18} />
               <span>Log Out</span>
@@ -111,7 +163,7 @@ export default function AccountView({
             {/* Header Greeting */}
             <div style={{ marginBottom: 24 }}>
               <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#062E1D' }}>
-                Welcome back, John!
+                Welcome back, {displayName}!
               </h1>
               <p style={{ color: '#64748B', fontSize: '0.9rem' }}>
                 Here's what's happening with your account and orders.
