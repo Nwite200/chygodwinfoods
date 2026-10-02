@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="140" fill="#FEF3C7" opacity="0.4"/>
+  <!-- Sack bag -->
+  <path d="M 150 110 Q 200 120 250 110 L 275 310 Q 275 345 200 345 Q 125 345 125 310 Z" fill="#D97706" stroke="#B45309" stroke-width="4"/>
+  <!-- Sack fold top -->
+  <ellipse cx="200" cy="115" rx="55" ry="18" fill="#F59E0B" stroke="#B45309" stroke-width="3"/>
+  <rect x="150" y="180" width="100" height="90" rx="8" fill="#FFF" opacity="0.9"/>
+  <text x="200" y="210" font-family="system-ui, sans-serif" font-weight="900" font-size="15" fill="#78350F" text-anchor="middle">DRIED BEANS</text>
+  <text x="200" y="230" font-family="system-ui, sans-serif" font-weight="700" font-size="12" fill="#B45309" text-anchor="middle">EWA OLOYIN</text>
+  <text x="200" y="252" font-family="system-ui, sans-serif" font-weight="900" font-size="14" fill="#047857" text-anchor="middle">1KG</text>
+</svg>

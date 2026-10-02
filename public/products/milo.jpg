@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="140" fill="#DCFCE7" opacity="0.4"/>
+  <!-- Green pack -->
+  <rect x="135" y="80" width="130" height="240" rx="16" fill="#15803D" stroke="#166534" stroke-width="4"/>
+  <circle cx="200" cy="180" r="42" fill="#78350F"/>
+  <text x="200" y="190" font-family="system-ui, sans-serif" font-weight="900" font-size="28" fill="#FACC15" text-anchor="middle">MILO</text>
+  <rect x="150" y="235" width="100" height="22" rx="11" fill="#FACC15"/>
+  <text x="200" y="250" font-family="system-ui, sans-serif" font-weight="900" font-size="11" fill="#15803D" text-anchor="middle">ACTIV-GO</text>
+  <text x="200" y="285" font-family="system-ui, sans-serif" font-weight="700" font-size="12" fill="#FFFFFF" text-anchor="middle">400g Refill</text>
+</svg>

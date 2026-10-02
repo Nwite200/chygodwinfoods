@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="140" fill="#DBEAFE" opacity="0.5"/>
+  <!-- Box / Pouch -->
+  <rect x="135" y="80" width="130" height="250" rx="14" fill="#2563EB" stroke="#1D4ED8" stroke-width="3"/>
+  <!-- Color splash -->
+  <circle cx="200" cy="180" r="48" fill="#EF4444"/>
+  <circle cx="200" cy="180" r="38" fill="#F59E0B"/>
+  <text x="200" y="192" font-family="system-ui, sans-serif" font-weight="900" font-size="28" fill="#FFFFFF" text-anchor="middle">OMO</text>
+  <text x="200" y="255" font-family="system-ui, sans-serif" font-weight="800" font-size="12" fill="#FFFFFF" text-anchor="middle">FAST ACTION</text>
+  <text x="200" y="275" font-family="system-ui, sans-serif" font-weight="700" font-size="13" fill="#FEF08A" text-anchor="middle">900g</text>
+</svg>

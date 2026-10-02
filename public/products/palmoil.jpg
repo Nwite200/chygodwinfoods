@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="140" fill="#FEF3C7" opacity="0.4"/>
+  <!-- Bottle Shape -->
+  <rect x="155" y="70" width="90" height="35" rx="6" fill="#F59E0B"/>
+  <rect x="180" y="45" width="40" height="28" rx="4" fill="#B45309"/>
+  <path d="M 155 105 Q 120 160 125 320 Q 125 350 200 350 Q 275 350 275 320 Q 280 160 245 105 Z" fill="#DC2626"/>
+  <!-- Liquid glow -->
+  <path d="M 140 160 Q 132 230 135 320 Q 160 340 200 340 Q 240 340 265 320 Q 268 230 260 160 Z" fill="#EA580C"/>
+  <path d="M 150 170 Q 145 230 148 310 Q 170 325 200 325 Q 230 325 252 310 Q 255 230 250 170 Z" fill="#F97316"/>
+  <!-- Reflection highlight -->
+  <path d="M 145 150 Q 140 220 142 300" stroke="#FFF" stroke-width="6" stroke-linecap="round" opacity="0.4" fill="none"/>
+  <!-- Label -->
+  <rect x="135" y="190" width="130" height="95" rx="8" fill="#FBBF24" stroke="#D97706" stroke-width="2"/>
+  <rect x="142" y="196" width="116" height="24" rx="4" fill="#047857"/>
+  <text x="200" y="213" font-family="system-ui, sans-serif" font-weight="900" font-size="12" fill="#FFFFFF" text-anchor="middle">TROPICAL SUN</text>
+  <text x="200" y="240" font-family="system-ui, sans-serif" font-weight="900" font-size="16" fill="#991B1B" text-anchor="middle">PALM OIL</text>
+  <text x="200" y="258" font-family="system-ui, sans-serif" font-weight="700" font-size="11" fill="#78350F" text-anchor="middle">100% PURE &amp; NATURAL</text>
+  <rect x="175" y="265" width="50" height="15" rx="7" fill="#DC2626"/>
+  <text x="200" y="276" font-family="system-ui, sans-serif" font-weight="800" font-size="9" fill="#FFF" text-anchor="middle">1 LITRE</text>
+</svg>

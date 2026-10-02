@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="140" fill="#F1F5F9" opacity="0.5"/>
+  <!-- Glass bottle -->
+  <rect x="175" y="45" width="50" height="25" rx="4" fill="#B45309"/>
+  <path d="M 170 70 L 230 70 L 235 110 L 255 140 L 255 330 Q 255 345 240 345 L 160 345 Q 145 345 145 330 L 145 140 L 165 110 Z" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="3"/>
+  <!-- Milk Liquid -->
+  <path d="M 150 145 L 250 145 L 250 330 Q 250 340 240 340 L 160 340 Q 150 340 150 330 Z" fill="#FEF3C7"/>
+  <!-- Label -->
+  <rect x="155" y="195" width="90" height="95" rx="8" fill="#78350F"/>
+  <text x="200" y="222" font-family="system-ui, sans-serif" font-weight="900" font-size="12" fill="#FDE68A" text-anchor="middle">CHYGODWIN</text>
+  <text x="200" y="242" font-family="system-ui, sans-serif" font-weight="900" font-size="14" fill="#FFFFFF" text-anchor="middle">TIGERNUT</text>
+  <text x="200" y="258" font-family="system-ui, sans-serif" font-weight="800" font-size="12" fill="#FBBF24" text-anchor="middle">MILK 1L</text>
+  <text x="200" y="275" font-family="system-ui, sans-serif" font-weight="600" font-size="9" fill="#FFF" text-anchor="middle">KUNUN AYA</text>
+</svg>
