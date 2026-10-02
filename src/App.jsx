@@ -194,10 +194,8 @@ export default function App() {
         setActiveView={setActiveView}
         cartCount={totalCartCount}
         setIsCartOpen={setIsCartOpen}
-        wishlistCount={wishlist.length}
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
-        onSelectProduct={handleSelectProduct}
       />
 
       {/* Slide-over Cart Drawer */}

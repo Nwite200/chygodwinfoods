@@ -1,58 +1,16 @@
-import React, { useState } from 'react';
-import { Search, ShoppingCart, Heart, User, Sparkles, Smartphone, LayoutDashboard, ShieldCheck, Check } from 'lucide-react';
+import React from 'react';
+import { Search, ShoppingCart, User } from 'lucide-react';
 
 export default function Header({
   activeView,
   setActiveView,
   cartCount,
   setIsCartOpen,
-  wishlistCount,
   searchTerm,
-  setSearchTerm,
-  onSelectProduct
+  setSearchTerm
 }) {
-  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
-
-  const views = [
-    { id: 'home', label: 'Home', icon: '🏠' },
-    { id: 'shop', label: 'Our Shop', icon: '🛍️' },
-    { id: 'product-detail', label: 'Product Detail', icon: '📦' },
-    { id: 'checkout', label: 'Checkout', icon: '💳' },
-    { id: 'account', label: 'User Account', icon: '👤' },
-    { id: 'admin', label: 'Admin Panel', icon: '📊' },
-    { id: 'mobile-preview', label: 'Mobile Mockup', icon: '📱' },
-  ];
-
   return (
     <header>
-      {/* Visual Reference Screen Switcher Bar */}
-      <div className="view-switcher-bar">
-        <div className="view-switcher-label">
-          <Sparkles size={14} />
-          <span>ChyGodwin Foodstuff Global Reference Screens:</span>
-        </div>
-        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', padding: '2px 0' }}>
-          {views.map((v) => (
-            <button
-              key={v.id}
-              className={`view-switcher-pill ${activeView === v.id ? 'active' : ''}`}
-              onClick={() => setActiveView(v.id)}
-            >
-              <span style={{ marginRight: '4px' }}>{v.icon}</span>
-              {v.label}
-            </button>
-          ))}
-          <button
-            className="view-switcher-pill"
-            style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#4ADE80' }}
-            onClick={() => setIsCartOpen(true)}
-          >
-            🛒 Open Cart Drawer ({cartCount})
-          </button>
-        </div>
-      </div>
-
-      {/* Main Header */}
       <div className="main-header">
         <div className="header-container">
           {/* Logo */}
