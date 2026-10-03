@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "ChyGodwin Foods",
+    "slug": "chygodwin-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.chygodwinfoods.mobile",
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "chygodwin-mobile",
+    "web": {
+      "output": "static",
+      "favicon": "./assets/favicon.png",
+      "name": "ChyGodwin Foods",
+      "shortName": "ChyGodwin",
+      "description": "Shop groceries and pantry essentials from ChyGodwin Foods.",
+      "themeColor": "#0b7c4e",
+      "backgroundColor": "#f0fdf4",
+      "display": "standalone",
+      "startUrl": "/",
+      "scope": "/",
+      "orientation": "portrait"
+    }
+  }
+}
