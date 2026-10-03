@@ -8,6 +8,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const handleRegister = async () => {
     if (!supabase) {
@@ -22,8 +23,8 @@ export default function RegisterScreen() {
 
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
       });
 
@@ -32,8 +33,12 @@ export default function RegisterScreen() {
         return;
       }
 
-      Alert.alert('Check your email', 'Your account has been created. You can now log in with the same credentials on the web and mobile app.');
-      router.replace('/login');
+      if (data.session) {
+        router.replace('/home');
+        return;
+      }
+
+      setNotice(`A confirmation link was sent to ${email.trim()}. Verify your email, then return here to log in.`);
     } catch (error) {
       Alert.alert('Unexpected error', error instanceof Error ? error.message : 'Unable to register account.');
     } finally {
@@ -71,6 +76,12 @@ export default function RegisterScreen() {
             secureTextEntry
             placeholder="Create a password"
           />
+
+          {notice ? (
+            <View style={styles.notice}>
+              <Text style={styles.noticeText}>{notice}</Text>
+            </View>
+          ) : null}
 
           <Pressable onPress={handleRegister} style={styles.primaryButton}>
             <Text style={styles.primaryButtonText}>{loading ? 'Creating...' : 'Register'}</Text>
@@ -144,6 +155,19 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     fontSize: 15,
     color: '#0f172a',
+  },
+  notice: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#86c9a8',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  noticeText: {
+    color: '#14532d',
+    fontSize: 13,
+    lineHeight: 19,
   },
   primaryButton: {
     backgroundColor: '#0b7c4e',

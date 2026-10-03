@@ -8,6 +8,9 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [canResendConfirmation, setCanResendConfirmation] = useState(false);
 
   const handleLogin = async () => {
     if (!supabase) {
@@ -22,17 +25,41 @@ export default function LoginScreen() {
 
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error) {
+        if (error.code === 'email_not_confirmed' || error.message.toLowerCase().includes('email not confirmed')) {
+          setNotice('Confirm your email before signing in. You can request another confirmation link below.');
+          setCanResendConfirmation(true);
+          return;
+        }
+
+        setCanResendConfirmation(false);
         Alert.alert('Login failed', error.message);
         return;
       }
 
+      setNotice(null);
       router.replace('/home');
     } catch (error) {
       Alert.alert('Unexpected error', error instanceof Error ? error.message : 'Unable to sign in.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!supabase || !email.trim()) {
+      return;
+    }
+
+    try {
+      setResending(true);
+      const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() });
+      setNotice(error ? error.message : `A new confirmation link was sent to ${email.trim()}.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Unable to resend the confirmation email.');
+    } finally {
+      setResending(false);
     }
   };
 
@@ -66,6 +93,17 @@ export default function LoginScreen() {
             secureTextEntry
             placeholder="••••••••"
           />
+
+          {notice ? (
+            <View style={styles.notice}>
+              <Text style={styles.noticeText}>{notice}</Text>
+              {canResendConfirmation ? (
+                <Pressable onPress={handleResendConfirmation} disabled={resending}>
+                  <Text style={styles.noticeAction}>{resending ? 'Sending...' : 'Resend confirmation email'}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+          ) : null}
 
           <Pressable onPress={handleLogin} style={styles.primaryButton}>
             <Text style={styles.primaryButtonText}>{loading ? 'Signing in...' : 'Login'}</Text>
@@ -139,6 +177,24 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     fontSize: 15,
     color: '#0f172a',
+  },
+  notice: {
+    backgroundColor: '#ecfdf5',
+    borderColor: '#86c9a8',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  noticeText: {
+    color: '#14532d',
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  noticeAction: {
+    color: '#0b7c4e',
+    fontWeight: '800',
+    marginTop: 10,
   },
   primaryButton: {
     backgroundColor: '#0b7c4e',
