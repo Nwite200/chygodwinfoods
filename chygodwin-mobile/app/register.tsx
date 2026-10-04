@@ -46,6 +46,10 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleContinueToLogin = () => {
+    router.push('/login');
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.wrapper}
@@ -80,6 +84,9 @@ export default function RegisterScreen() {
           {notice ? (
             <View style={styles.notice}>
               <Text style={styles.noticeText}>{notice}</Text>
+              <Pressable onPress={handleContinueToLogin} style={styles.secondaryButton}>
+                <Text style={styles.secondaryButtonText}>I verified my email — continue to login</Text>
+              </Pressable>
             </View>
           ) : null}
 
@@ -168,6 +175,19 @@ const styles = StyleSheet.create({
     color: '#14532d',
     fontSize: 13,
     lineHeight: 19,
+  },
+  secondaryButton: {
+    marginTop: 12,
+    backgroundColor: '#dcfce7',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+  },
+  secondaryButtonText: {
+    color: '#166534',
+    fontWeight: '800',
+    fontSize: 13,
   },
   primaryButton: {
     backgroundColor: '#0b7c4e',
