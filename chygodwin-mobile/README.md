@@ -13,7 +13,14 @@ Use Expo Go on a phone connected to the same network, or open the web preview fr
 
 ## Install as an iPhone web app
 
-Build the static PWA with `npm run build:web`. Deploy the generated `dist` directory to a hosting service with HTTPS; the PWA cannot be installed from a `file://` path. On iPhone, open the deployed URL in Safari, tap Share, choose **Add to Home Screen**, and enable **Open as Web App** before adding it.
+This app is configured as a separate Netlify site so its deployment does not replace the shop website:
+
+1. In Netlify, import `Nwite200/chygodwinfoods` from GitHub and choose `chygodwin-mobile` as the package directory. Leave the base directory at the repository root.
+2. Add `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to the new Netlify site's environment variables. Use the same Supabase project as the website; never use a Supabase secret key in the app.
+3. Deploy the site. Netlify reads the build command and publish directory from [`netlify.toml`](./netlify.toml). The resulting HTTPS site URL is the PWA link; pushes to the production branch will publish updates.
+4. On iPhone, open that URL in Safari, tap Share, choose **Add to Home Screen**, and enable **Open as Web App** before adding it.
+
+To build locally, run `npm run build:web`; the generated static site is in `dist`.
 
 The PWA includes a web manifest, app icons, and standalone display metadata. It requires an internet connection; offline caching is not configured.
 
