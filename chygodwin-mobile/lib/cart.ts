@@ -15,6 +15,7 @@ export type CartItem = {
 
 const CART_TABLE = 'cart_items';
 
+let realtimeChannelSequence = 0;
 const normalizeCartRow = (row: Record<string, unknown>): CartItem => ({
   id: String(row.product_id),
   product_id: String(row.product_id),
@@ -49,7 +50,7 @@ const createRealtimeSubscriptions = (userId: string, onChange: () => void) => {
   }
 
   const channel = supabase
-    .channel(`cart-sync-${userId}`)
+    .channel(`cart-sync-${userId}-${++realtimeChannelSequence}`)
     .on(
       'postgres_changes',
       {
