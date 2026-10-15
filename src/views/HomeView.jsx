@@ -44,11 +44,11 @@ export default function HomeView({
       />
 
       {/* 4. Featured Products Section */}
-      <section className="section-pad" style={{ background: '#FFFFFF' }}>
+      <section className="section-pad" style={{ background: 'var(--surface-card)' }}>
         <div className="section-container">
           <div className="section-header-flex">
             <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#0C6837', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-green)', letterSpacing: '0.06em' }}>
                 Handpicked Favorites from Nkwelle Light of God Estate
               </span>
               <h2 className="section-title">Featured Nigerian Foodstuffs</h2>
@@ -82,11 +82,11 @@ export default function HomeView({
       </section>
 
       {/* 6. Popular Essentials / Best Sellers */}
-      <section className="section-pad" style={{ background: '#F8FAFC', borderTop: '1px solid #E2E8F0' }}>
+      <section className="section-pad" style={{ background: 'var(--surface-subtle)', borderTop: '1px solid var(--border-light)' }}>
         <div className="section-container">
           <div className="section-header-flex">
             <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#0C6837', letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-green)', letterSpacing: '0.06em' }}>
                 Daily Kitchen Staples
               </span>
               <h2 className="section-title">Popular in Nigerian Kitchens</h2>

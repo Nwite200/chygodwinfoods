@@ -63,7 +63,7 @@ export default function ProductDetailView({
         {/* Back link */}
         <button
           onClick={() => onNavigate('shop')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: '#0C6837', fontWeight: 600, marginBottom: 20 }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem', color: 'var(--text-green)', fontWeight: 600, marginBottom: 20 }}
         >
           <ArrowLeft size={16} /> Back to Shop
         </button>
@@ -113,7 +113,7 @@ export default function ProductDetailView({
 
           {/* Right Column: Info & Actions */}
           <div className="detail-info-block">
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', color: '#0C6837', letterSpacing: '0.06em' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-green)', letterSpacing: '0.06em' }}>
               {product.brand}
             </span>
             <h1 className="detail-title">{product.name}</h1>
@@ -126,8 +126,8 @@ export default function ProductDetailView({
                 ))}
               </div>
               <span className="reviews-count-text">({product.reviewsCount} reviews)</span>
-              <span style={{ color: '#CBD5E1' }}>•</span>
-              <span style={{ fontSize: '0.82rem', color: '#16A34A', fontWeight: 700 }}>In Stock ({product.stockCount} available)</span>
+              <span style={{ color: 'var(--border-strong)' }}>•</span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-success)', fontWeight: 700 }}>In Stock ({product.stockCount} available)</span>
             </div>
 
             {/* Price */}
@@ -235,7 +235,7 @@ export default function ProductDetailView({
                 {openAccordion === 'shipping' && (
                   <div className="accordion-body">
                     <p>{product.shippingInfo || 'Nationwide delivery across Nigeria and international dispatch to UK, US, and Canada.'}</p>
-                    <p style={{ marginTop: 6, color: '#64748B' }}>
+                    <p style={{ marginTop: 6, color: 'var(--text-muted)' }}>
                       Easy 7-day returns on sealed items if damaged during transit.
                     </p>
                   </div>

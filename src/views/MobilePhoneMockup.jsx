@@ -110,7 +110,7 @@ export default function MobilePhoneMockup({
             <div style={{ position: 'relative' }}>
               <Search
                 size={14}
-                style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }}
+                style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }}
               />
               <input
                 type="text"
@@ -236,10 +236,10 @@ export default function MobilePhoneMockup({
                 <div
                   key={p.id}
                   style={{
-                    background: '#FFFFFF',
+                    background: 'var(--surface-card)',
                     borderRadius: 14,
                     padding: 10,
-                    color: '#0F172A',
+                    color: 'var(--text-strong)',
                     display: 'flex',
                     flexDirection: 'column'
                   }}
@@ -248,7 +248,7 @@ export default function MobilePhoneMockup({
                   <div
                     style={{
                       aspectRatio: '1',
-                      background: '#F8FAFC',
+                      background: 'var(--surface-subtle)',
                       borderRadius: 8,
                       overflow: 'hidden',
                       display: 'flex',
@@ -259,7 +259,7 @@ export default function MobilePhoneMockup({
                   >
                     <img src={p.image} alt={p.name} style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
                   </div>
-                  <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: '#94A3B8', fontWeight: 700 }}>
+                  <div style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: 'var(--text-light)', fontWeight: 700 }}>
                     {p.brand}
                   </div>
                   <div
@@ -274,7 +274,7 @@ export default function MobilePhoneMockup({
                   >
                     {p.name}
                   </div>
-                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#062E1D', marginBottom: 8 }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--text-heading)', marginBottom: 8 }}>
                     ₦{p.price.toLocaleString()}
                   </div>
                   <button

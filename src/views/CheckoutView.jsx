@@ -100,62 +100,62 @@ export default function CheckoutView({
         <div className="section-container" style={{ maxWidth: 650 }}>
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--surface-card)',
               borderRadius: 20,
               padding: 40,
               textAlign: 'center',
               boxShadow: 'var(--shadow-md)',
-              border: '1px solid #BBF7D0'
+              border: '1px solid var(--border-green)'
             }}
           >
             <div
               style={{
                 width: 72,
                 height: 72,
-                background: '#DCFCE7',
+                background: 'var(--surface-green-tint)',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 20px auto',
-                color: '#16A34A'
+                color: 'var(--text-success)'
               }}
             >
               <PackageCheck size={40} />
             </div>
 
-            <span style={{ fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', color: '#166534', letterSpacing: '0.08em' }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-green-strong)', letterSpacing: '0.08em' }}>
               Order Placed Successfully!
             </span>
-            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#062E1D', margin: '8px 0 12px 0' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-heading)', margin: '8px 0 12px 0' }}>
               Daalụ! Thank You, {completedOrder.customer}
             </h1>
-            <p style={{ color: '#64748B', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: 24 }}>
-              Your order <strong style={{ color: '#062E1D' }}>#{completedOrder.id}</strong> has been received and is now being packaged with fresh Nigerian food staples.
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: 24 }}>
+              Your order <strong style={{ color: 'var(--text-heading)' }}>#{completedOrder.id}</strong> has been received and is now being packaged with fresh Nigerian food staples.
             </p>
 
             {/* Tracking Card */}
             <div
               style={{
-                background: '#F8FAFC',
+                background: 'var(--surface-subtle)',
                 borderRadius: 14,
                 padding: 20,
                 textAlign: 'left',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-light)',
                 marginBottom: 28
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <span style={{ color: '#64748B', fontSize: '0.85rem' }}>Tracking Number:</span>
-                <strong style={{ color: '#0C6837' }}>{completedOrder.tracking}</strong>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Tracking Number:</span>
+                <strong style={{ color: 'var(--text-green)' }}>{completedOrder.tracking}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <span style={{ color: '#64748B', fontSize: '0.85rem' }}>Estimated Delivery:</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Estimated Delivery:</span>
                 <strong>2-3 Business Days</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: '#64748B', fontSize: '0.85rem' }}>Total Paid:</span>
-                <strong style={{ color: '#062E1D', fontSize: '1.1rem' }}>₦{completedOrder.total.toLocaleString()}</strong>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Total Paid:</span>
+                <strong style={{ color: 'var(--text-heading)', fontSize: '1.1rem' }}>₦{completedOrder.total.toLocaleString()}</strong>
               </div>
             </div>
 
@@ -189,14 +189,14 @@ export default function CheckoutView({
               </button>
               <button
                 className="btn-secondary-pill"
-                style={{ color: '#062E1D', borderColor: '#CBD5E1' }}
+                style={{ color: 'var(--text-heading)', borderColor: 'var(--border-strong)' }}
                 onClick={() => onNavigate('account')}
               >
                 Track in Account Dashboard
               </button>
               <button
                 className="btn-secondary-pill"
-                style={{ color: '#062E1D', borderColor: '#CBD5E1' }}
+                style={{ color: 'var(--text-heading)', borderColor: 'var(--border-strong)' }}
                 onClick={() => onNavigate('shop')}
               >
                 Continue Shopping
@@ -217,12 +217,12 @@ export default function CheckoutView({
             <span className="step-number">1</span>
             <span>Shipping</span>
           </div>
-          <span style={{ color: '#CBD5E1' }}>————</span>
+          <span style={{ color: 'var(--border-strong)' }}>————</span>
           <div className={`step-indicator ${step >= 2 ? 'active' : ''}`}>
             <span className="step-number">2</span>
             <span>Payment</span>
           </div>
-          <span style={{ color: '#CBD5E1' }}>————</span>
+          <span style={{ color: 'var(--border-strong)' }}>————</span>
           <div className={`step-indicator ${step === 3 ? 'active' : ''}`}>
             <span className="step-number">3</span>
             <span>Confirmation</span>
@@ -315,7 +315,7 @@ export default function CheckoutView({
             {/* Delivery Method */}
             <div className="form-card">
               <h2 className="form-title">Delivery &amp; Waybill Method</h2>
-              <div style={{ background: '#F8FAFC', padding: 12, borderRadius: 8, border: '1px solid #E2E8F0', marginBottom: 14, fontSize: '0.8rem', color: '#475569' }}>
+              <div style={{ background: 'var(--surface-subtle)', padding: 12, borderRadius: 8, border: '1px solid var(--border-light)', marginBottom: 14, fontSize: '0.8rem', color: 'var(--text-body)' }}>
                 📍 Dispatched from <strong>Nkwelle Light of God estate</strong>. We waybill and deliver Nationwide and beyond.
               </div>
 
@@ -327,10 +327,10 @@ export default function CheckoutView({
                   <Truck size={20} color="#0C6837" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Nationwide Waybill &amp; Delivery (2-3 Days)</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Dispatched via trusted interstate bus/haulage park or direct courier</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Dispatched via trusted interstate bus/haulage park or direct courier</div>
                   </div>
                 </div>
-                <strong style={{ color: '#062E1D' }}>₦1,500</strong>
+                <strong style={{ color: 'var(--text-heading)' }}>₦1,500</strong>
               </div>
 
               <div
@@ -341,10 +341,10 @@ export default function CheckoutView({
                   <Truck size={20} color="#22C55E" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Express Priority Dispatch (Same Day / 24 Hours)</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>First-morning bus waybill for urgent foodstuff requirements</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>First-morning bus waybill for urgent foodstuff requirements</div>
                   </div>
                 </div>
-                <strong style={{ color: '#062E1D' }}>₦3,500</strong>
+                <strong style={{ color: 'var(--text-heading)' }}>₦3,500</strong>
               </div>
             </div>
 
@@ -360,16 +360,16 @@ export default function CheckoutView({
                   <Building size={20} color="#0C6837" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Direct Bank Transfer (Moniepoint)</div>
-                    <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 600 }}>Recommended • Zero transaction delays</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-green-strong)', fontWeight: 600 }}>Recommended • Zero transaction delays</div>
                   </div>
                 </div>
-                <span style={{ fontSize: '0.75rem', background: '#DCFCE7', color: '#166534', padding: '3px 8px', borderRadius: 4, fontWeight: 800 }}>Instant</span>
+                <span style={{ fontSize: '0.75rem', background: 'var(--surface-green-tint)', color: 'var(--text-green-strong)', padding: '3px 8px', borderRadius: 4, fontWeight: 800 }}>Instant</span>
               </div>
 
               {formData.paymentMethod === 'transfer' && (
-                <div style={{ background: '#F0FDF4', padding: 18, borderRadius: 12, marginBottom: 14, border: '2px solid #86EFAC', fontSize: '0.88rem' }}>
+                <div style={{ background: 'var(--surface-mint)', padding: 18, borderRadius: 12, marginBottom: 14, border: '2px solid #86EFAC', fontSize: '0.88rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: '#166534' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-green-strong)' }}>
                       Official Payment Account
                     </span>
                     <button
@@ -394,10 +394,10 @@ export default function CheckoutView({
                   </div>
 
                   <p style={{ margin: '4px 0' }}><strong>Bank :</strong> Moniepoint</p>
-                  <p style={{ margin: '4px 0' }}><strong>Acc No:</strong> <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0C6837', letterSpacing: '0.04em' }}>8063654393</span></p>
+                  <p style={{ margin: '4px 0' }}><strong>Acc No:</strong> <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-green)', letterSpacing: '0.04em' }}>8063654393</span></p>
                   <p style={{ margin: '4px 0' }}><strong>Name:</strong> Chygodwin Foodstuffs Global Concept</p>
 
-                  <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.7)', padding: 10, borderRadius: 8, fontSize: '0.78rem', color: '#166534', lineHeight: '1.4' }}>
+                  <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.7)', padding: 10, borderRadius: 8, fontSize: '0.78rem', color: 'var(--text-green-strong)', lineHeight: '1.4' }}>
                     💡 <em>After making your transfer, please send proof of payment on WhatsApp to <strong>08063654393</strong> for immediate package dispatch.</em>
                   </div>
                 </div>
@@ -411,14 +411,14 @@ export default function CheckoutView({
                   <CreditCard size={20} color="#0C6837" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Card (Visa, Mastercard, Verve)</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Online debit card payment</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Online debit card payment</div>
                   </div>
                 </div>
                 <ShieldCheck size={18} color="#16A34A" />
               </div>
 
               {formData.paymentMethod === 'card' && (
-                <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 10, marginBottom: 14, border: '1px solid #E2E8F0' }}>
+                <div style={{ background: 'var(--surface-subtle)', padding: 16, borderRadius: 10, marginBottom: 14, border: '1px solid var(--border-light)' }}>
                   <div className="form-field">
                     <label className="form-label">Card Number</label>
                     <input
@@ -459,7 +459,7 @@ export default function CheckoutView({
                   <DollarSign size={20} color="#0C6837" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Pay on Delivery / Park Pickup</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Cash on doorstep or waybill park verification</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Cash on doorstep or waybill park verification</div>
                   </div>
                 </div>
               </div>
@@ -472,17 +472,17 @@ export default function CheckoutView({
               <h2 className="form-title">Order Summary</h2>
 
               {cartItems.length === 0 ? (
-                <p style={{ color: '#64748B', fontSize: '0.88rem' }}>No items in checkout.</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem' }}>No items in checkout.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
                   {cartItems.map((it) => (
-                    <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid #F1F5F9', paddingBottom: 10 }}>
-                      <img src={it.image} alt={it.name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'contain', background: '#F8FAFC', border: '1px solid #E2E8F0' }} />
+                    <div key={it.id} style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border-light)', paddingBottom: 10 }}>
+                      <img src={it.image} alt={it.name} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'contain', background: 'var(--surface-subtle)', border: '1px solid var(--border-light)' }} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>{it.name}</div>
-                        <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Qty: {it.quantity}</div>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-strong)' }}>{it.name}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Qty: {it.quantity}</div>
                       </div>
-                      <strong style={{ fontSize: '0.9rem', color: '#062E1D' }}>
+                      <strong style={{ fontSize: '0.9rem', color: 'var(--text-heading)' }}>
                         ₦{(it.price * it.quantity).toLocaleString()}
                       </strong>
                     </div>
@@ -513,7 +513,7 @@ export default function CheckoutView({
                 {isProcessing ? 'Processing Order...' : 'Place Order'}
               </button>
 
-              <div style={{ textAlign: 'center', marginTop: 14, fontSize: '0.75rem', color: '#94A3B8' }}>
+              <div style={{ textAlign: 'center', marginTop: 14, fontSize: '0.75rem', color: 'var(--text-light)' }}>
                 You will receive a confirmation email shortly at <strong>{formData.email}</strong>
               </div>
             </div>

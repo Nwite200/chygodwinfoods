@@ -124,37 +124,37 @@ export default function ShopView({
           <aside className="shop-sidebar">
             {/* Active filters pill box if any active */}
             {(selectedCategory || selectedPriceRange !== 'all' || selectedBrands.length > 0 || searchTerm) && (
-              <div className="filter-block" style={{ background: '#F0FDF4', borderColor: '#BBF7D0' }}>
+              <div className="filter-block" style={{ background: 'var(--surface-mint)', borderColor: 'var(--border-green)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#166534' }}>Active Filters</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-green-strong)' }}>Active Filters</span>
                   <button
                     onClick={clearAllFilters}
-                    style={{ fontSize: '0.75rem', color: '#DC2626', fontWeight: 700 }}
+                    style={{ fontSize: '0.75rem', color: 'var(--text-danger)', fontWeight: 700 }}
                   >
                     Clear All
                   </button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {selectedCategory && (
-                    <span style={{ background: '#DCFCE7', color: '#166534', padding: '3px 8px', borderRadius: 9999, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ background: 'var(--surface-green-tint)', color: 'var(--text-green-strong)', padding: '3px 8px', borderRadius: 9999, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                       {CATEGORIES.find((c) => c.id === selectedCategory)?.name}
                       <X size={12} style={{ cursor: 'pointer' }} onClick={() => onSelectCategory('')} />
                     </span>
                   )}
                   {selectedPriceRange !== 'all' && (
-                    <span style={{ background: '#DCFCE7', color: '#166534', padding: '3px 8px', borderRadius: 9999, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ background: 'var(--surface-green-tint)', color: 'var(--text-green-strong)', padding: '3px 8px', borderRadius: 9999, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                       {priceRanges.find((r) => r.id === selectedPriceRange)?.label}
                       <X size={12} style={{ cursor: 'pointer' }} onClick={() => setSelectedPriceRange('all')} />
                     </span>
                   )}
                   {selectedBrands.map((b) => (
-                    <span key={b} style={{ background: '#DCFCE7', color: '#166534', padding: '3px 8px', borderRadius: 9999, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span key={b} style={{ background: 'var(--surface-green-tint)', color: 'var(--text-green-strong)', padding: '3px 8px', borderRadius: 9999, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                       {b}
                       <X size={12} style={{ cursor: 'pointer' }} onClick={() => handleBrandToggle(b)} />
                     </span>
                   ))}
                   {searchTerm && (
-                    <span style={{ background: '#DCFCE7', color: '#166534', padding: '3px 8px', borderRadius: 9999, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ background: 'var(--surface-green-tint)', color: 'var(--text-green-strong)', padding: '3px 8px', borderRadius: 9999, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
                       "{searchTerm}"
                       <X size={12} style={{ cursor: 'pointer' }} onClick={() => setSearchTerm('')} />
                     </span>
@@ -170,7 +170,7 @@ export default function ShopView({
                 {selectedCategory && (
                   <button
                     onClick={() => onSelectCategory('')}
-                    style={{ fontSize: '0.72rem', color: '#0C6837', fontWeight: 600 }}
+                    style={{ fontSize: '0.72rem', color: 'var(--text-green)', fontWeight: 600 }}
                   >
                     Reset
                   </button>
@@ -245,7 +245,7 @@ export default function ShopView({
               </span>
 
               <div className="shop-sort-wrap">
-                <span style={{ color: '#64748B' }}>Sort By:</span>
+                <span style={{ color: 'var(--text-muted)' }}>Sort By:</span>
                 <select
                   className="shop-sort-select"
                   value={sortBy}
@@ -260,11 +260,11 @@ export default function ShopView({
             </div>
 
             {totalResults === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 20px', background: '#FFFFFF', borderRadius: 16 }}>
-                <p style={{ fontSize: '1.2rem', fontWeight: 700, color: '#062E1D', marginBottom: 8 }}>
+              <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--surface-card)', borderRadius: 16 }}>
+                <p style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-heading)', marginBottom: 8 }}>
                   No foodstuff items found matching your filters.
                 </p>
-                <p style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: 20 }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: 20 }}>
                   Try resetting your search query or selecting a different category.
                 </p>
                 <button className="btn-primary-pill" onClick={clearAllFilters}>

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Package,
   TrendingUp,
@@ -37,44 +37,67 @@ export default function AdminView({
   onNavigate
 }) {
   // Authentication State
-  // Credentials come ONLY from env vars — never hardcoded in the bundle.
-  // Read ADMIN_EMAIL + ADMIN_PASSWORD_HASH; keep the old VITE_* names as a
-  // fallback until you confirm the new names work, then remove it.
-  const ADMIN_EMAIL = (import.meta.env.ADMIN_EMAIL || import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
-  const ADMIN_PASSWORD_HASH = (import.meta.env.ADMIN_PASSWORD_HASH || import.meta.env.VITE_ADMIN_PASSWORD_HASH || '').trim();
-  const ADMIN_CREDENTIALS = !ADMIN_EMAIL || !ADMIN_PASSWORD_HASH
-    ? null
-    : {
-        email: ADMIN_EMAIL.toLowerCase(),
-        saltHex: ADMIN_PASSWORD_HASH.split(':')[0],
-        hashHex: ADMIN_PASSWORD_HASH.split(':')[1],
-      };
-
-  // scrypt (Web Crypto) — replaces plain SHA-256. Same params as scripts/make-admin-hash.js
-  const derivePasswordHash = async (password, saltHex) => {
-    const buf = await crypto.subtle.scrypt(password, saltHex, 64, { N: 16384, r: 8, p: 1 });
-    return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-  };
-
-  // ---- rate-limit state ----
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [failedByEmail, setFailedByEmail] = useState({});
-  const [lockUntil, setLockUntil] = useState(0);
+  // No credentials live in the browser. Login is verified server-side by
+  // netlify/functions/admin-login.mjs (scrypt + 5-fail/15-min IP & email lockout
+  // persisted in Netlify Blobs) via POST /api/admin-login.
+  const LOGIN_ENDPOINT = '/api/admin-login';
+  const SESSION_KEY = 'chygodwin_admin_token';
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sessionChecking, setSessionChecking] = useState(true);
   const [adminSessionEmail, setAdminSessionEmail] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    try {
-      return sessionStorage.getItem('chygodwin_admin_auth') === 'true';
-    } catch {
-      return false;
-    }
-  });
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const resetLoginState = () => {
-    setFailedAttempts(0);
-    setFailedByEmail({});
-    setFailedByIp({});
-    setLockUntil(0);
-  };
+  // Restore session: token is HMAC-signed by the server (forging it client-side
+  // is impossible), so this check also runs against the function.
+  useEffect(() => {
+    let cancelled = false;
+    let token = null;
+    try {
+      token = sessionStorage.getItem(SESSION_KEY);
+      sessionStorage.removeItem('chygodwin_admin_auth'); // legacy insecure flag
+    } catch {
+      // ignore
+    }
+    if (!token) {
+      setSessionChecking(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+    fetch(LOGIN_ENDPOINT, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'verify', token }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.ok) {
+          setIsAuthenticated(true);
+          setAdminSessionEmail(data.email || '');
+        } else {
+          try {
+            sessionStorage.removeItem(SESSION_KEY);
+          } catch {
+            // ignore
+          }
+        }
+      })
+      .catch(() => {
+        // Function unreachable (e.g. plain `npm run dev`) — require a fresh login.
+        try {
+          sessionStorage.removeItem(SESSION_KEY);
+        } catch {
+          // ignore
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setSessionChecking(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -161,79 +184,41 @@ export default function AdminView({
     { label: 'Knorr Maggi', path: '/products/maggi.jpg' }
   ];
 
-  // Handle Admin Login — credentials come from env vars only (never hardcoded / auto-filled)
+  // Handle Admin Login — verification is 100% server-side. One generic error
+  // for a wrong email and a wrong password; the lockout (5 fails / 15 min per
+  // IP + per email, persisted in Netlify Blobs) is enforced by the function.
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError('');
-
-    // Global throttle capped at 5 failed attempts per deployment.
-    if (failedAttempts >= 5) {
-      const secs = Math.ceil((lockUntil - Date.now()) / 1000);
-      setAuthError(`Too many failed attempts. Try again in ${secs}s.`);
-      return;
-    }
-
-    if (!ADMIN_CREDENTIALS?.saltHex || !ADMIN_CREDENTIALS?.hashHex) {
-      setAuthError('Admin login is not configured on this deployment. Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH.');
-      return;
-    }
-
-    const trimmedEmail = authEmail.trim().toLowerCase();
-    const trimmedPass = authPassword;
-
-    // One message for a wrong email and a wrong password.
-    const matches = trimmedEmail === ADMIN_CREDENTIALS.email
-      && (await derivePasswordHash(trimmedPass, ADMIN_CREDENTIALS.saltHex)) === ADMIN_CREDENTIALS.hashHex;
-
-    // Record the attempt (email + session fingerprint) BEFORE the check so a
-    // successful login always resets the counters.
-    recordFailedAttempt(trimmedEmail);
-
-    if (!matches) {
-      const emailLock = failedByEmail[trimmedEmail]?.expires || 0;
-      const hasLock = Date.now() < Math.min(lockUntil, emailLock);
-      if (hasLock) {
-        const secs = Math.ceil((Math.min(lockUntil, emailLock) - Date.now()) / 1000);
-        setAuthError(`Too many failed attempts. Try again in ${secs}s.`);
-      } else {
-        setAuthError('Invalid email or password. Access denied.');
-      }
-      return;
-    }
-
-    setIsAuthenticated(true);
-    setAdminSessionEmail(trimmedEmail);
-    setFailedAttempts(0);
-    setLockUntil(0);
-    resetRateLimits(trimmedEmail);
-    setAuthPassword('');
+    if (isLoggingIn) return;
+    setIsLoggingIn(true);
     try {
-      sessionStorage.setItem('chygodwin_admin_auth', 'true');
+      const res = await fetch(LOGIN_ENDPOINT, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email: authEmail, password: authPassword }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.ok && data?.token) {
+        try {
+          sessionStorage.setItem(SESSION_KEY, data.token);
+        } catch {
+          // ignore
+        }
+        setIsAuthenticated(true);
+        setAdminSessionEmail(data.email || '');
+        setAuthPassword('');
+        showFeedback('Welcome, Admin! Management Console unlocked.');
+        return;
+      }
+      // 401 (bad credentials) and 429 (locked out) both come back as one
+      // safe-to-display message from the server.
+      setAuthError(data?.error || 'Invalid email or password. Access denied.');
     } catch {
-      // ignore
+      setAuthError('Could not reach the login service. Check your connection and try again.');
+    } finally {
+      setIsLoggingIn(false);
     }
-    showFeedback('Welcome, Admin! Management Console unlocked.');
-  };
-
-  const resetRateLimits = (email) => {
-    setFailedAttempts(0);
-    setFailedByEmail((prev) => {
-      const next = { ...prev };
-      delete next[email || 'anonymous'];
-      return next;
-    });
-    setLockUntil(0);
-  };
-
-  const recordFailedAttempt = (email) => {
-    const now = Date.now();
-    const key = email || 'anonymous';
-    const limit = 5;
-    const expires = now + 15 * 60 * 1000; // 15 minute lockout
-    setFailedByEmail((prev) => ({
-      ...prev,
-      [key]: { count: (prev[key]?.count || 0) + 1, expires },
-    }));
   };
 
   const handleLogout = () => {
@@ -241,9 +226,8 @@ export default function AdminView({
     setAdminSessionEmail('');
     setAuthEmail('');
     setAuthPassword('');
-    resetRateLimits(adminSessionEmail);
     try {
-      sessionStorage.removeItem('chygodwin_admin_auth');
+      sessionStorage.removeItem(SESSION_KEY);
     } catch {
       // ignore
     }
@@ -555,16 +539,24 @@ export default function AdminView({
 
   // IF NOT AUTHENTICATED: Display Password-Protected Login Gate
   if (!isAuthenticated) {
+    // Still verifying an existing session token — avoid flashing the form.
+    if (sessionChecking) {
+      return (
+        <div className="section-pad" style={{ background: '#062E1D', minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: '#BBF7D0', fontWeight: 700, letterSpacing: '0.04em' }}>Checking session…</div>
+        </div>
+      );
+    }
     return (
       <div className="section-pad" style={{ background: '#062E1D', minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ width: '100%', maxWidth: 440, padding: 16 }}>
           <div
             style={{
-              background: '#FFFFFF',
+              background: 'var(--surface-card)',
               borderRadius: 20,
               padding: 36,
               boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
-              border: '1px solid #BBF7D0',
+              border: '1px solid var(--border-green)',
               textAlign: 'center'
             }}
           >
@@ -573,8 +565,8 @@ export default function AdminView({
                 width: 64,
                 height: 64,
                 borderRadius: '50%',
-                background: '#DCFCE7',
-                color: '#166534',
+                background: 'var(--surface-green-tint)',
+                color: 'var(--text-green-strong)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -584,22 +576,22 @@ export default function AdminView({
               <Lock size={32} />
             </div>
 
-            <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: '#0C6837', letterSpacing: '0.08em' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-green)', letterSpacing: '0.08em' }}>
               Restricted Management Area
             </span>
-            <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: '#062E1D', margin: '6px 0 8px 0' }}>
+            <h1 style={{ fontSize: '1.65rem', fontWeight: 900, color: 'var(--text-heading)', margin: '6px 0 8px 0' }}>
               Admin Console Login
             </h1>
-            <p style={{ fontSize: '0.82rem', color: '#64748B', lineHeight: '1.5', marginBottom: 24 }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: '1.5', marginBottom: 24 }}>
               Enter your authorized store credentials to manage products, pricing, picture uploads, and inventory graphs.
             </p>
 
             {authError && (
               <div
                 style={{
-                  background: '#FEF2F2',
-                  border: '1px solid #FECACA',
-                  color: '#DC2626',
+                  background: 'var(--surface-danger)',
+                  border: '1px solid var(--text-danger)',
+                  color: 'var(--text-danger)',
                   borderRadius: 10,
                   padding: '10px 14px',
                   fontSize: '0.8rem',
@@ -650,7 +642,7 @@ export default function AdminView({
                       transform: 'translateY(-50%)',
                       background: 'none',
                       border: 'none',
-                      color: '#64748B',
+                      color: 'var(--text-muted)',
                       cursor: 'pointer'
                     }}
                     title={showPassword ? 'Hide password' : 'Show password'}
@@ -663,9 +655,10 @@ export default function AdminView({
               <button
                 type="submit"
                 className="btn-primary-pill"
-                style={{ width: '100%', padding: '12px', fontSize: '0.95rem', fontWeight: 800, justifyContent: 'center' }}
+                disabled={isLoggingIn}
+                style={{ width: '100%', padding: '12px', fontSize: '0.95rem', fontWeight: 800, justifyContent: 'center', opacity: isLoggingIn ? 0.7 : 1, cursor: isLoggingIn ? 'wait' : 'pointer' }}
               >
-                <Unlock size={17} /> Unlock Admin Console
+                <Unlock size={17} /> {isLoggingIn ? 'Verifying…' : 'Unlock Admin Console'}
               </button>
             </form>
           </div>
@@ -676,7 +669,7 @@ export default function AdminView({
 
   // AUTHENTICATED: Display Full Management Suite
   return (
-    <div className="section-pad" style={{ background: '#F8FAFC', minHeight: '85vh' }}>
+    <div className="section-pad" style={{ background: 'var(--surface-subtle)', minHeight: '85vh' }}>
       <div className="section-container">
         {/* Feedback Alert Toast */}
         {feedbackMsg && (
@@ -706,20 +699,20 @@ export default function AdminView({
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 24 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0C6837', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-green)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Store Management • Nkwelle Light of God Estate
               </span>
-              <span style={{ background: '#DCFCE7', color: '#166534', padding: '2px 8px', borderRadius: 9999, fontSize: '0.72rem', fontWeight: 800 }}>
+              <span style={{ background: 'var(--surface-green-tint)', color: 'var(--text-green-strong)', padding: '2px 8px', borderRadius: 9999, fontSize: '0.72rem', fontWeight: 800 }}>
                 Admin Verified
               </span>
             </div>
-            <h1 style={{ fontSize: '1.9rem', fontWeight: 900, color: '#062E1D', margin: '4px 0 0 0' }}>
+            <h1 style={{ fontSize: '1.9rem', fontWeight: 900, color: 'var(--text-heading)', margin: '4px 0 0 0' }}>
               Chygodwin Control Console
             </h1>
           </div>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
               Signed in as Console Admin (browser keeps no email or hash)
             </span>
 
@@ -739,11 +732,11 @@ export default function AdminView({
                 gap: 6,
                 padding: '8px 14px',
                 borderRadius: 9999,
-                background: '#FFFFFF',
-                border: '1px solid #CBD5E1',
+                background: 'var(--surface-card)',
+                border: '1px solid var(--border-strong)',
                 fontSize: '0.82rem',
                 fontWeight: 700,
-                color: '#475569'
+                color: 'var(--text-body)'
               }}
             >
               <Eye size={15} /> Customer Shop
@@ -757,11 +750,11 @@ export default function AdminView({
                 gap: 6,
                 padding: '8px 14px',
                 borderRadius: 9999,
-                background: '#FEF2F2',
-                border: '1px solid #FECACA',
+                background: 'var(--surface-danger)',
+                border: '1px solid var(--text-danger)',
                 fontSize: '0.82rem',
                 fontWeight: 700,
-                color: '#DC2626',
+                color: 'var(--text-danger)',
                 cursor: 'pointer'
               }}
               title="Lock Admin Console"
@@ -778,9 +771,9 @@ export default function AdminView({
               <span className="stat-title">Catalog Inventory</span>
               <Package size={20} color="#0C6837" />
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#062E1D' }}>{products.length} Products</div>
-            <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#64748B' }}>
-              <span style={{ color: '#16A34A', fontWeight: 700 }}>{stockMetrics.totalUnits.toLocaleString()} total units</span> in warehouse
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-heading)' }}>{products.length} Products</div>
+            <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              <span style={{ color: 'var(--text-success)', fontWeight: 700 }}>{stockMetrics.totalUnits.toLocaleString()} total units</span> in warehouse
             </div>
           </div>
 
@@ -789,8 +782,8 @@ export default function AdminView({
               <span className="stat-title">Trending &amp; Fast Movers</span>
               <Flame size={20} color="#F97316" />
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#C2410C' }}>{trendingStock.length} Staples</div>
-            <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#64748B' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-warn)' }}>{trendingStock.length} Staples</div>
+            <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               High customer reorder rate
             </div>
           </div>
@@ -800,10 +793,10 @@ export default function AdminView({
               <span className="stat-title">Stock Health &amp; Alerts</span>
               <AlertTriangle size={20} color="#DC2626" />
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: stockMetrics.lowStock.length > 0 ? '#DC2626' : '#16A34A' }}>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: stockMetrics.lowStock.length > 0 ? 'var(--text-danger)' : 'var(--text-success)' }}>
               {stockMetrics.lowStock.length} Low Stock
             </div>
-            <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#64748B' }}>
+            <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               {stockMetrics.outOfStock.length} items out of stock
             </div>
           </div>
@@ -813,15 +806,15 @@ export default function AdminView({
               <span className="stat-title">Monthly Sales Growth</span>
               <TrendingUp size={20} color="#16A34A" />
             </div>
-            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: '#062E1D' }}>{activeGraph.growth}</div>
-            <div style={{ marginTop: 6, fontSize: '0.75rem', color: '#64748B' }}>
-              Gross Volume: <strong style={{ color: '#0C6837' }}>{activeGraph.totalRevenue}</strong>
+            <div style={{ fontSize: '1.85rem', fontWeight: 900, color: 'var(--text-heading)' }}>{activeGraph.growth}</div>
+            <div style={{ marginTop: 6, fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Gross Volume: <strong style={{ color: 'var(--text-green)' }}>{activeGraph.totalRevenue}</strong>
             </div>
           </div>
         </div>
 
         {/* Main Tab Navigation */}
-        <div style={{ display: 'flex', gap: 10, borderBottom: '2px solid #E2E8F0', paddingBottom: 12, marginBottom: 24, overflowX: 'auto' }}>
+        <div style={{ display: 'flex', gap: 10, borderBottom: '2px solid var(--border-light)', paddingBottom: 12, marginBottom: 24, overflowX: 'auto' }}>
           <button
             onClick={() => setActiveTab('inventory')}
             style={{
@@ -834,8 +827,8 @@ export default function AdminView({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              background: activeTab === 'inventory' ? '#0C6837' : '#FFFFFF',
-              color: activeTab === 'inventory' ? '#FFFFFF' : '#475569',
+              background: activeTab === 'inventory' ? '#0C6837' : 'var(--surface-card)',
+              color: activeTab === 'inventory' ? '#FFFFFF' : 'var(--text-body)',
               boxShadow: activeTab === 'inventory' ? '0 2px 8px rgba(12,104,55,0.25)' : 'none'
             }}
           >
@@ -854,8 +847,8 @@ export default function AdminView({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              background: activeTab === 'analytics' ? '#0C6837' : '#FFFFFF',
-              color: activeTab === 'analytics' ? '#FFFFFF' : '#475569',
+              background: activeTab === 'analytics' ? '#0C6837' : 'var(--surface-card)',
+              color: activeTab === 'analytics' ? '#FFFFFF' : 'var(--text-body)',
               boxShadow: activeTab === 'analytics' ? '0 2px 8px rgba(12,104,55,0.25)' : 'none'
             }}
           >
@@ -874,8 +867,8 @@ export default function AdminView({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              background: activeTab === 'orders' ? '#0C6837' : '#FFFFFF',
-              color: activeTab === 'orders' ? '#FFFFFF' : '#475569'
+              background: activeTab === 'orders' ? '#0C6837' : 'var(--surface-card)',
+              color: activeTab === 'orders' ? '#FFFFFF' : 'var(--text-body)'
             }}
           >
             <Truck size={16} /> Store Orders &amp; Waybill Tracking ({orders.length})
@@ -893,8 +886,8 @@ export default function AdminView({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 8,
-              background: activeTab === 'business' ? '#0C6837' : '#FFFFFF',
-              color: activeTab === 'business' ? '#FFFFFF' : '#475569'
+              background: activeTab === 'business' ? '#0C6837' : 'var(--surface-card)',
+              color: activeTab === 'business' ? '#FFFFFF' : 'var(--text-body)'
             }}
           >
             🏢 Moniepoint &amp; Location Profile
@@ -907,10 +900,10 @@ export default function AdminView({
             {/* Filter and Search Bar */}
             <div
               style={{
-                background: '#FFFFFF',
+                background: 'var(--surface-card)',
                 borderRadius: 14,
                 padding: '16px 20px',
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-light)',
                 display: 'flex',
                 flexWrap: 'wrap',
                 alignItems: 'center',
@@ -920,7 +913,7 @@ export default function AdminView({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 260 }}>
-                <Search size={18} color="#94A3B8" />
+                <Search size={18} style={{ color: 'var(--text-light)' }} />
                 <input
                   type="text"
                   placeholder="Search products by name, description, brand..."
@@ -929,7 +922,7 @@ export default function AdminView({
                   style={{ width: '100%', border: 'none', outline: 'none', fontSize: '0.9rem' }}
                 />
                 {searchTerm && (
-                  <button onClick={() => setSearchTerm('')} style={{ color: '#94A3B8' }} title="Clear search">
+                  <button onClick={() => setSearchTerm('')} style={{ color: 'var(--text-light)' }} title="Clear search">
                     <X size={16} />
                   </button>
                 )}
@@ -942,11 +935,11 @@ export default function AdminView({
                   style={{
                     padding: '8px 12px',
                     borderRadius: 8,
-                    border: '1px solid #CBD5E1',
+                    border: '1px solid var(--border-strong)',
                     fontSize: '0.85rem',
-                    background: '#F8FAFC',
+                    background: 'var(--surface-subtle)',
                     fontWeight: 600,
-                    color: '#0F172A'
+                    color: 'var(--text-strong)'
                   }}
                 >
                   <option value="">All Categories ({products.length})</option>
@@ -975,11 +968,11 @@ export default function AdminView({
                     style={{
                       padding: '8px 12px',
                       borderRadius: 8,
-                      border: '1px solid #E2E8F0',
-                      background: '#F1F5F9',
+                      border: '1px solid var(--border-light)',
+                      background: 'var(--surface-raised)',
                       fontSize: '0.78rem',
                       fontWeight: 700,
-                      color: '#475569',
+                      color: 'var(--text-body)',
                       cursor: 'pointer'
                     }}
                     title="Restore fresh 62 products catalog"
@@ -994,7 +987,7 @@ export default function AdminView({
             <div className="form-card" style={{ padding: 0, overflow: 'hidden' }}>
               <div style={{ overflowX: 'auto' }}>
                 <table className="orders-table" style={{ margin: 0 }}>
-                  <thead style={{ background: '#F8FAFC' }}>
+                  <thead style={{ background: 'var(--surface-subtle)' }}>
                     <tr>
                       <th style={{ width: 70 }}>Picture</th>
                       <th>Product Name &amp; Description</th>
@@ -1007,7 +1000,7 @@ export default function AdminView({
                   <tbody>
                     {filteredProducts.length === 0 ? (
                       <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', padding: 40, color: '#64748B' }}>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: 40, color: 'var(--text-muted)' }}>
                           No products found matching "{searchTerm}". Try clearing your filters or upload a new item.
                         </td>
                       </tr>
@@ -1020,8 +1013,8 @@ export default function AdminView({
                                 width: 50,
                                 height: 50,
                                 borderRadius: 8,
-                                background: '#F8FAFC',
-                                border: '1px solid #E2E8F0',
+                                background: 'var(--surface-subtle)',
+                                border: '1px solid var(--border-light)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
@@ -1040,21 +1033,21 @@ export default function AdminView({
 
                           <td style={{ maxWidth: 280 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <strong style={{ color: '#062E1D', fontSize: '0.9rem' }}>{p.name}</strong>
+                              <strong style={{ color: 'var(--text-heading)', fontSize: '0.9rem' }}>{p.name}</strong>
                               {p.badge && (
-                                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: '#DCFCE7', color: '#166534' }}>
+                                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'var(--surface-green-tint)', color: 'var(--text-green-strong)' }}>
                                   {p.badge}
                                 </span>
                               )}
                             </div>
-                            <p style={{ color: '#64748B', fontSize: '0.76rem', margin: '4px 0 0 0', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.76rem', margin: '4px 0 0 0', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                               {p.description}
                             </p>
-                            <span style={{ fontSize: '0.7rem', color: '#94A3B8' }}>Brand: {p.brand || 'Chygodwin Select'}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-light)' }}>Brand: {p.brand || 'Chygodwin Select'}</span>
                           </td>
 
                           <td>
-                            <span style={{ fontSize: '0.8rem', background: '#F1F5F9', color: '#334155', padding: '4px 8px', borderRadius: 6, fontWeight: 600 }}>
+                            <span style={{ fontSize: '0.8rem', background: 'var(--surface-raised)', color: 'var(--text-body)', padding: '4px 8px', borderRadius: 6, fontWeight: 600 }}>
                               {p.categoryName || p.category}
                             </span>
                           </td>
@@ -1063,7 +1056,7 @@ export default function AdminView({
                           <td>
                             {inlinePriceId === p.id ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                <span style={{ fontWeight: 800, color: '#0C6837' }}>₦</span>
+                                <span style={{ fontWeight: 800, color: 'var(--text-green)' }}>₦</span>
                                 <input
                                   type="number"
                                   autoFocus
@@ -1091,7 +1084,7 @@ export default function AdminView({
                                 </button>
                                 <button
                                   onClick={() => setInlinePriceId(null)}
-                                  style={{ background: '#E2E8F0', color: '#475569', padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer' }}
+                                  style={{ background: 'var(--surface-raised)', color: 'var(--text-body)', padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer' }}
                                   title="Cancel"
                                 >
                                   <X size={14} />
@@ -1100,11 +1093,11 @@ export default function AdminView({
                             ) : (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <div>
-                                  <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#062E1D' }}>
+                                  <div style={{ fontSize: '0.98rem', fontWeight: 900, color: 'var(--text-heading)' }}>
                                     ₦{Number(p.price).toLocaleString()}
                                   </div>
                                   {p.originalPrice && p.originalPrice > p.price && (
-                                    <div style={{ fontSize: '0.72rem', color: '#94A3B8', textDecoration: 'line-through' }}>
+                                    <div style={{ fontSize: '0.72rem', color: 'var(--text-light)', textDecoration: 'line-through' }}>
                                       ₦{Number(p.originalPrice).toLocaleString()}
                                     </div>
                                   )}
@@ -1115,12 +1108,12 @@ export default function AdminView({
                                     setInlinePriceVal(p.price);
                                   }}
                                   style={{
-                                    background: '#F0FDF4',
-                                    border: '1px solid #BBF7D0',
+                                    background: 'var(--surface-mint)',
+                                    border: '1px solid var(--border-green)',
                                     borderRadius: 6,
                                     padding: '3px 8px',
                                     fontSize: '0.72rem',
-                                    color: '#0C6837',
+                                    color: 'var(--text-green)',
                                     fontWeight: 700,
                                     cursor: 'pointer'
                                   }}
@@ -1139,8 +1132,8 @@ export default function AdminView({
                                 <button
                                   onClick={() => handleToggleStock(p)}
                                   style={{
-                                    background: p.inStock ? '#DCFCE7' : '#FEE2E2',
-                                    color: p.inStock ? '#166534' : '#991B1B',
+                                    background: p.inStock ? 'var(--surface-green-tint)' : 'var(--surface-danger)',
+                                    color: p.inStock ? 'var(--text-green-strong)' : 'var(--text-danger)',
                                     padding: '2px 8px',
                                     borderRadius: 9999,
                                     fontSize: '0.72rem',
@@ -1152,7 +1145,7 @@ export default function AdminView({
                                 >
                                   {p.inStock ? '● In Stock' : '✕ Out of Stock'}
                                 </button>
-                                <span style={{ fontSize: '0.75rem', color: p.stockCount <= 15 ? '#DC2626' : '#64748B', fontWeight: p.stockCount <= 15 ? 800 : 500 }}>
+                                <span style={{ fontSize: '0.75rem', color: p.stockCount <= 15 ? 'var(--text-danger)' : 'var(--text-muted)', fontWeight: p.stockCount <= 15 ? 800 : 500 }}>
                                   ({p.stockCount ?? 20} left)
                                 </span>
                               </div>
@@ -1161,7 +1154,7 @@ export default function AdminView({
                                   onClick={() => handleQuickRestock(p, 20)}
                                   style={{
                                     fontSize: '0.68rem',
-                                    color: '#0C6837',
+                                    color: 'var(--text-green)',
                                     fontWeight: 700,
                                     textDecoration: 'underline',
                                     textAlign: 'left',
@@ -1183,11 +1176,11 @@ export default function AdminView({
                               <button
                                 onClick={() => handleOpenEdit(p)}
                                 style={{
-                                  background: '#F1F5F9',
-                                  color: '#062E1D',
+                                  background: 'var(--surface-raised)',
+                                  color: 'var(--text-heading)',
                                   padding: '6px 10px',
                                   borderRadius: 6,
-                                  border: '1px solid #CBD5E1',
+                                  border: '1px solid var(--border-strong)',
                                   fontSize: '0.75rem',
                                   fontWeight: 700,
                                   cursor: 'pointer',
@@ -1208,11 +1201,11 @@ export default function AdminView({
                                   }
                                 }}
                                 style={{
-                                  background: '#FEF2F2',
-                                  color: '#DC2626',
+                                  background: 'var(--surface-danger)',
+                                  color: 'var(--text-danger)',
                                   padding: '6px 8px',
                                   borderRadius: 6,
-                                  border: '1px solid #FECACA',
+                                  border: '1px solid var(--text-danger)',
                                   cursor: 'pointer'
                                 }}
                                 title="Delete product"
@@ -1240,17 +1233,17 @@ export default function AdminView({
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Activity size={18} color="#0C6837" />
-                    <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: '#0C6837', letterSpacing: '0.06em' }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-green)', letterSpacing: '0.06em' }}>
                       Revenue &amp; Waybill Trajectory
                     </span>
                   </div>
-                  <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#062E1D', margin: '4px 0 0 0' }}>
+                  <h2 style={{ fontSize: '1.45rem', fontWeight: 900, color: 'var(--text-heading)', margin: '4px 0 0 0' }}>
                     {activeGraph.title}
                   </h2>
                 </div>
 
                 {/* Timeframe Buttons */}
-                <div style={{ display: 'flex', gap: 6, background: '#F1F5F9', padding: 4, borderRadius: 10 }}>
+                <div style={{ display: 'flex', gap: 6, background: 'var(--surface-raised)', padding: 4, borderRadius: 10 }}>
                   <button
                     onClick={() => setTimeframe('7d')}
                     style={{
@@ -1260,8 +1253,8 @@ export default function AdminView({
                       fontWeight: 700,
                       border: 'none',
                       cursor: 'pointer',
-                      background: timeframe === '7d' ? '#FFFFFF' : 'transparent',
-                      color: timeframe === '7d' ? '#0C6837' : '#64748B',
+                      background: timeframe === '7d' ? 'var(--surface-card)' : 'transparent',
+                      color: timeframe === '7d' ? 'var(--text-green)' : 'var(--text-muted)',
                       boxShadow: timeframe === '7d' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                     }}
                   >
@@ -1276,8 +1269,8 @@ export default function AdminView({
                       fontWeight: 700,
                       border: 'none',
                       cursor: 'pointer',
-                      background: timeframe === '30d' ? '#FFFFFF' : 'transparent',
-                      color: timeframe === '30d' ? '#0C6837' : '#64748B',
+                      background: timeframe === '30d' ? 'var(--surface-card)' : 'transparent',
+                      color: timeframe === '30d' ? 'var(--text-green)' : 'var(--text-muted)',
                       boxShadow: timeframe === '30d' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                     }}
                   >
@@ -1292,8 +1285,8 @@ export default function AdminView({
                       fontWeight: 700,
                       border: 'none',
                       cursor: 'pointer',
-                      background: timeframe === '12m' ? '#FFFFFF' : 'transparent',
-                      color: timeframe === '12m' ? '#0C6837' : '#64748B',
+                      background: timeframe === '12m' ? 'var(--surface-card)' : 'transparent',
+                      color: timeframe === '12m' ? 'var(--text-green)' : 'var(--text-muted)',
                       boxShadow: timeframe === '12m' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
                     }}
                   >
@@ -1303,22 +1296,22 @@ export default function AdminView({
               </div>
 
               {/* Chart Summary Stats */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24, padding: 14, background: '#F8FAFC', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24, padding: 14, background: 'var(--surface-subtle)', borderRadius: 12, border: '1px solid var(--border-light)' }}>
                 <div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Gross Sales Volume</span>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#062E1D', marginTop: 2 }}>{activeGraph.totalRevenue}</div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Gross Sales Volume</span>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-heading)', marginTop: 2 }}>{activeGraph.totalRevenue}</div>
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Orders Fulfilled</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Orders Fulfilled</span>
                   <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#0284C7', marginTop: 2 }}>{activeGraph.totalOrders}</div>
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Average Order Value</span>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#16A34A', marginTop: 2 }}>₦20,040</div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Average Order Value</span>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-success)', marginTop: 2 }}>₦20,040</div>
                 </div>
                 <div>
-                  <span style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>Nationwide Delivery Rate</span>
-                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#7C3AED', marginTop: 2 }}>99.2%</div>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Nationwide Delivery Rate</span>
+                  <div style={{ fontSize: '1.35rem', fontWeight: 900, color: 'var(--text-accent)', marginTop: 2 }}>99.2%</div>
                 </div>
               </div>
 
@@ -1346,7 +1339,7 @@ export default function AdminView({
                           y1={y}
                           x2={svgWidth - paddingX}
                           y2={y}
-                          stroke="#E2E8F0"
+                          style={{ stroke: 'var(--border-light)' }}
                           strokeDasharray="4 4"
                           strokeWidth="1"
                         />
@@ -1355,7 +1348,7 @@ export default function AdminView({
                           y={y + 4}
                           textAnchor="end"
                           fontSize="10"
-                          fill="#94A3B8"
+                          style={{ fill: 'var(--text-light)' }}
                           fontFamily="sans-serif"
                         >
                           ₦{(val / 1000).toFixed(0)}k
@@ -1399,10 +1392,9 @@ export default function AdminView({
                           cx={pt.x}
                           cy={pt.y}
                           r={isHovered ? 7 : 5}
-                          fill="#FFFFFF"
                           stroke="#0C6837"
                           strokeWidth={isHovered ? 3 : 2.5}
-                          style={{ cursor: 'pointer', transition: 'all 0.15s ease' }}
+                          style={{ fill: 'var(--surface-card)', cursor: 'pointer', transition: 'all 0.15s ease' }}
                           onMouseEnter={() => setHoveredPoint(pt)}
                           onMouseLeave={() => setHoveredPoint(null)}
                         />
@@ -1414,7 +1406,7 @@ export default function AdminView({
                           textAnchor="middle"
                           fontSize="11"
                           fontWeight="700"
-                          fill="#64748B"
+                          style={{ fill: 'var(--text-muted)' }}
                           fontFamily="sans-serif"
                         >
                           {pt.label}
@@ -1457,7 +1449,7 @@ export default function AdminView({
                     <Flame size={20} color="#EA580C" />
                     <h3 className="form-title" style={{ margin: 0 }}>Trending &amp; High Velocity Staples</h3>
                   </div>
-                  <span style={{ fontSize: '0.72rem', background: '#FFEDD5', color: '#9A3412', padding: '3px 8px', borderRadius: 9999, fontWeight: 800 }}>
+                  <span style={{ fontSize: '0.72rem', background: 'var(--surface-warn)', color: 'var(--text-warn)', padding: '3px 8px', borderRadius: 9999, fontWeight: 800 }}>
                     Fastest Selling
                   </span>
                 </div>
@@ -1471,9 +1463,9 @@ export default function AdminView({
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         padding: 12,
-                        background: '#F8FAFC',
+                        background: 'var(--surface-subtle)',
                         borderRadius: 10,
-                        border: '1px solid #E2E8F0'
+                        border: '1px solid var(--border-light)'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1482,8 +1474,8 @@ export default function AdminView({
                             width: 24,
                             height: 24,
                             borderRadius: '50%',
-                            background: idx < 3 ? '#0C6837' : '#E2E8F0',
-                            color: idx < 3 ? '#FFF' : '#475569',
+                            background: idx < 3 ? '#0C6837' : 'var(--surface-raised)',
+                            color: idx < 3 ? '#FFF' : 'var(--text-body)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1496,22 +1488,22 @@ export default function AdminView({
                         <img
                           src={item.image}
                           alt={item.name}
-                          style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'contain', background: '#FFFFFF', border: '1px solid #E2E8F0' }}
+                          style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'contain', background: 'var(--surface-card)', border: '1px solid var(--border-light)' }}
                           onError={(e) => { e.target.src = '/hero.jpg'; }}
                         />
                         <div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#062E1D' }}>{item.name}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
+                          <div style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-heading)' }}>{item.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                             ₦{Number(item.price).toLocaleString()} • {item.stockCount} in stock
                           </div>
                         </div>
                       </div>
 
                       <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 4, background: '#DCFCE7', color: '#166534', display: 'inline-block' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px', borderRadius: 4, background: 'var(--surface-green-tint)', color: 'var(--text-green-strong)', display: 'inline-block' }}>
                           {item.trendStatus}
                         </span>
-                        <div style={{ fontSize: '0.72rem', color: item.runwayDays <= 5 ? '#DC2626' : '#64748B', fontWeight: 700, marginTop: 4 }}>
+                        <div style={{ fontSize: '0.72rem', color: item.runwayDays <= 5 ? 'var(--text-danger)' : 'var(--text-muted)', fontWeight: 700, marginTop: 4 }}>
                           ~{item.runwayDays} days runway
                         </div>
                       </div>
@@ -1527,25 +1519,25 @@ export default function AdminView({
                     <Layers size={20} color="#0C6837" />
                     <h3 className="form-title" style={{ margin: 0 }}>Category Revenue Contribution</h3>
                   </div>
-                  <span style={{ fontSize: '0.72rem', background: '#E0F2FE', color: '#0369A1', padding: '3px 8px', borderRadius: 9999, fontWeight: 800 }}>
+                  <span style={{ fontSize: '0.72rem', background: 'var(--surface-info)', color: 'var(--text-info)', padding: '3px 8px', borderRadius: 9999, fontWeight: 800 }}>
                     Market Share
                   </span>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {[
-                    { name: 'Mega Food Combos (70k & 160k)', pct: 36, rev: '₦1,024,400', color: '#0C6837' },
-                    { name: 'Grains, Flours & Swallows', pct: 24, rev: '₦682,900', color: '#16A34A' },
-                    { name: 'Cooking & Palm Oils', pct: 18, rev: '₦512,200', color: '#F59E0B' },
+                    { name: 'Mega Food Combos (70k & 160k)', pct: 36, rev: '₦1,024,400', color: 'var(--text-green)' },
+                    { name: 'Grains, Flours & Swallows', pct: 24, rev: '₦682,900', color: 'var(--text-success)' },
+                    { name: 'Cooking & Palm Oils', pct: 18, rev: '₦512,200', color: 'var(--text-amber)' },
                     { name: 'Soup Essentials & Egusi', pct: 12, rev: '₦341,500', color: '#0284C7' },
-                    { name: 'Healthy Mixes, Dates & Snacks', pct: 10, rev: '₦284,600', color: '#7C3AED' }
+                    { name: 'Healthy Mixes, Dates & Snacks', pct: 10, rev: '₦284,600', color: 'var(--text-accent)' }
                   ].map((cat, idx) => (
                     <div key={idx}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem', marginBottom: 6 }}>
-                        <span style={{ fontWeight: 700, color: '#0F172A' }}>{cat.name}</span>
+                        <span style={{ fontWeight: 700, color: 'var(--text-strong)' }}>{cat.name}</span>
                         <span style={{ fontWeight: 800, color: cat.color }}>{cat.rev} ({cat.pct}%)</span>
                       </div>
-                      <div style={{ width: '100%', height: 8, background: '#F1F5F9', borderRadius: 9999, overflow: 'hidden' }}>
+                      <div style={{ width: '100%', height: 8, background: 'var(--surface-raised)', borderRadius: 9999, overflow: 'hidden' }}>
                         <div style={{ width: `${cat.pct}%`, height: '100%', background: cat.color, borderRadius: 9999 }}></div>
                       </div>
                     </div>
@@ -1553,11 +1545,11 @@ export default function AdminView({
                 </div>
 
                 {/* Logistics Fulfillment Insight */}
-                <div style={{ marginTop: 24, padding: 16, background: '#F0FDF4', borderRadius: 12, border: '1px solid #BBF7D0' }}>
-                  <div style={{ fontWeight: 800, color: '#166534', fontSize: '0.85rem' }}>
+                <div style={{ marginTop: 24, padding: 16, background: 'var(--surface-mint)', borderRadius: 12, border: '1px solid var(--border-green)' }}>
+                  <div style={{ fontWeight: 800, color: 'var(--text-green-strong)', fontSize: '0.85rem' }}>
                     🚚 Nationwide Waybill Summary
                   </div>
-                  <p style={{ fontSize: '0.78rem', color: '#475569', marginTop: 4, lineHeight: '1.5' }}>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-body)', marginTop: 4, lineHeight: '1.5' }}>
                     Waybills originating from Nkwelle Light of God estate maintain an average transit time of <strong>2.1 business days</strong> to Lagos, Abuja, Port Harcourt, and diaspora freight hubs.
                   </p>
                 </div>
@@ -1572,11 +1564,11 @@ export default function AdminView({
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>
                 <h3 className="form-title" style={{ margin: 0 }}>Recent Customer Orders &amp; Waybills</h3>
-                <p style={{ fontSize: '0.82rem', color: '#64748B', marginTop: 4 }}>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4 }}>
                   Waybilled nationwide from Nkwelle Light of God estate with tracking codes.
                 </p>
               </div>
-              <span style={{ fontSize: '0.8rem', background: '#DCFCE7', color: '#166534', padding: '4px 12px', borderRadius: 9999, fontWeight: 700 }}>
+              <span style={{ fontSize: '0.8rem', background: 'var(--surface-green-tint)', color: 'var(--text-green-strong)', padding: '4px 12px', borderRadius: 9999, fontWeight: 700 }}>
                 {orders.length} Total Orders
               </span>
             </div>
@@ -1598,13 +1590,13 @@ export default function AdminView({
                 <tbody>
                   {orders.map((ord) => (
                     <tr key={ord.id}>
-                      <td><strong style={{ color: '#062E1D' }}>#{ord.id}</strong></td>
+                      <td><strong style={{ color: 'var(--text-heading)' }}>#{ord.id}</strong></td>
                       <td>
                         <strong>{ord.customer}</strong>
-                        <div style={{ fontSize: '0.75rem', color: '#64748B' }}>{ord.email}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{ord.email}</div>
                       </td>
                       <td>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 700, background: '#F1F5F9', padding: '3px 8px', borderRadius: 4, color: '#0C6837' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 700, background: 'var(--surface-raised)', padding: '3px 8px', borderRadius: 4, color: 'var(--text-green)' }}>
                           {ord.tracking || 'TRK-NG-WAYBILL'}
                         </span>
                       </td>
@@ -1613,9 +1605,9 @@ export default function AdminView({
                           ? ord.items.map((i) => `${i.name} (x${i.quantity || 1})`).join(', ')
                           : 'Foodstuff Provision Pack'}
                       </td>
-                      <td><strong style={{ color: '#062E1D' }}>₦{ord.total.toLocaleString()}</strong></td>
+                      <td><strong style={{ color: 'var(--text-heading)' }}>₦{ord.total.toLocaleString()}</strong></td>
                       <td>
-                        <span style={{ fontSize: '0.78rem', background: '#F0FDF4', color: '#166534', padding: '3px 8px', borderRadius: 4, fontWeight: 700 }}>
+                        <span style={{ fontSize: '0.78rem', background: 'var(--surface-mint)', color: 'var(--text-green-strong)', padding: '3px 8px', borderRadius: 4, fontWeight: 700 }}>
                           {ord.paymentMethod || 'Moniepoint Transfer'}
                         </span>
                       </td>
@@ -1642,7 +1634,7 @@ export default function AdminView({
                           style={{
                             padding: '4px 8px',
                             borderRadius: 6,
-                            border: '1px solid #CBD5E1',
+                            border: '1px solid var(--border-strong)',
                             fontSize: '0.75rem',
                             fontWeight: 700
                           }}
@@ -1710,32 +1702,32 @@ export default function AdminView({
             {/* Address & Waybill Card */}
             <div className="form-card">
               <h3 className="form-title">Physical Shop Address</h3>
-              <div style={{ background: '#F8FAFC', padding: 16, borderRadius: 12, border: '1px solid #E2E8F0', marginBottom: 20 }}>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#64748B', textTransform: 'uppercase' }}>Store Location:</div>
-                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: '#062E1D', marginTop: 4 }}>
+              <div style={{ background: 'var(--surface-subtle)', padding: 16, borderRadius: 12, border: '1px solid var(--border-light)', marginBottom: 20 }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Store Location:</div>
+                <div style={{ fontSize: '1.15rem', fontWeight: 900, color: 'var(--text-heading)', marginTop: 4 }}>
                   Nkwelle Light of God estate
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: 2 }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-body)', marginTop: 2 }}>
                   Anambra State, Nigeria
                 </div>
               </div>
 
               <h3 className="form-title">Nationwide Logistics &amp; Waybill</h3>
-              <p style={{ fontSize: '0.88rem', color: '#334155', lineHeight: '1.6' }}>
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-body)', lineHeight: '1.6' }}>
                 <strong>We waybill and deliver Nationwide and beyond.</strong> High-volume foodstuff parcels, bags of rice, yam tubers, pure palm oil jerrycans, and delicate dried leaves are safely packaged and sent across all 36 Nigerian states and international diaspora destinations.
               </p>
 
               <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.82rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: 6 }}>
-                  <span style={{ color: '#64748B' }}>Primary Phone / WhatsApp:</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Primary Phone / WhatsApp:</span>
                   <strong>08063654393</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #F1F5F9', paddingBottom: 6 }}>
-                  <span style={{ color: '#64748B' }}>Value Proposition:</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Value Proposition:</span>
                   <strong>Quality &amp; affordable prices</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748B' }}>Authorized Admin:</span>
+                  <span style={{ color: 'var(--text-muted)' }}>Authorized Admin:</span>
                   <strong>{adminSessionEmail || 'Verified session'}</strong>
                 </div>
               </div>
@@ -1761,7 +1753,7 @@ export default function AdminView({
           >
             <div
               style={{
-                background: '#FFFFFF',
+                background: 'var(--surface-card)',
                 borderRadius: 20,
                 width: '100%',
                 maxWidth: 720,
@@ -1780,7 +1772,7 @@ export default function AdminView({
                   position: 'absolute',
                   top: 20,
                   right: 20,
-                  background: '#F1F5F9',
+                  background: 'var(--surface-raised)',
                   border: 'none',
                   borderRadius: '50%',
                   width: 36,
@@ -1791,21 +1783,21 @@ export default function AdminView({
                   cursor: 'pointer'
                 }}
               >
-                <X size={18} color="#64748B" />
+                <X size={18} style={{ color: 'var(--text-muted)' }} />
               </button>
 
               <div style={{ marginBottom: 20 }}>
-                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0C6837', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-green)', textTransform: 'uppercase' }}>
                   {editingProduct ? 'Inventory & Picture Update' : 'New Product Upload'}
                 </span>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#062E1D', margin: '4px 0 0 0' }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-heading)', margin: '4px 0 0 0' }}>
                   {editingProduct ? `Edit "${editingProduct.name}"` : 'Upload Foodstuff Product & Image'}
                 </h2>
               </div>
 
               <form onSubmit={handleSaveProduct}>
                 {/* 1. PRODUCT PICTURE UPLOAD ZONE (PNG / JPEG) */}
-                <div style={{ marginBottom: 22, background: '#F8FAFC', padding: 18, borderRadius: 14, border: '1px solid #E2E8F0' }}>
+                <div style={{ marginBottom: 22, background: 'var(--surface-subtle)', padding: 18, borderRadius: 14, border: '1px solid var(--border-light)' }}>
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                     <ImageIcon size={16} color="#0C6837" />
                     <strong>Product Picture (Upload PNG / JPEG / WEBP) *</strong>
@@ -1818,8 +1810,8 @@ export default function AdminView({
                         width: 110,
                         height: 110,
                         borderRadius: 12,
-                        background: '#FFFFFF',
-                        border: '2px solid #CBD5E1',
+                        background: 'var(--surface-card)',
+                        border: '2px solid var(--border-strong)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1836,7 +1828,7 @@ export default function AdminView({
                           onError={(e) => { e.target.src = '/hero.jpg'; }}
                         />
                       ) : (
-                        <span style={{ fontSize: '0.75rem', color: '#94A3B8' }}>No Image</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>No Image</span>
                       )}
                     </div>
 
@@ -1850,8 +1842,8 @@ export default function AdminView({
                         minWidth: 240,
                         padding: 16,
                         borderRadius: 10,
-                        border: `2px dashed ${isDragging ? '#0C6837' : '#94A3B8'}`,
-                        background: isDragging ? '#DCFCE7' : '#FFFFFF',
+                        border: `2px dashed ${isDragging ? '#0C6837' : 'var(--border-strong)'}`,
+                        background: isDragging ? 'var(--surface-green-tint)' : 'var(--surface-card)',
                         textAlign: 'center',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease'
@@ -1866,10 +1858,10 @@ export default function AdminView({
                         onChange={handleFileChange}
                       />
                       <Upload size={24} color="#0C6837" style={{ margin: '0 auto 6px auto' }} />
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>
+                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-strong)' }}>
                         Click to browse or drag &amp; drop picture here
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: 2 }}>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: 2 }}>
                         Supports PNG, JPG, JPEG, and WebP (Automatically sized to fit the store)
                       </div>
                     </div>
@@ -1877,7 +1869,7 @@ export default function AdminView({
 
                   {/* Preset Quick Selectors */}
                   <div style={{ marginTop: 14 }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#64748B', display: 'block', marginBottom: 6 }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
                       Or choose from popular staple presets:
                     </span>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, maxHeight: 90, overflowY: 'auto' }}>
@@ -1895,9 +1887,9 @@ export default function AdminView({
                             fontSize: '0.72rem',
                             fontWeight: 700,
                             cursor: 'pointer',
-                            background: formData.image === preset.path ? '#0C6837' : '#FFFFFF',
-                            color: formData.image === preset.path ? '#FFFFFF' : '#334155',
-                            border: '1px solid #CBD5E1'
+                            background: formData.image === preset.path ? '#0C6837' : 'var(--surface-card)',
+                            color: formData.image === preset.path ? '#FFFFFF' : 'var(--text-body)',
+                            border: '1px solid var(--border-strong)'
                           }}
                         >
                           {preset.label}
@@ -2014,7 +2006,7 @@ export default function AdminView({
                     onChange={(e) => setFormData({ ...formData, inStock: e.target.checked })}
                     style={{ width: 18, height: 18, accentColor: '#0C6837' }}
                   />
-                  <label htmlFor="inStockCheckModal" style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0F172A', cursor: 'pointer' }}>
+                  <label htmlFor="inStockCheckModal" style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-strong)', cursor: 'pointer' }}>
                     Available in Stock for immediate nationwide waybill
                   </label>
                 </div>
@@ -2078,11 +2070,11 @@ export default function AdminView({
                     style={{
                       padding: '10px 20px',
                       borderRadius: 9999,
-                      background: '#F1F5F9',
-                      border: '1px solid #CBD5E1',
+                      background: 'var(--surface-raised)',
+                      border: '1px solid var(--border-strong)',
                       fontSize: '0.88rem',
                       fontWeight: 700,
-                      color: '#475569',
+                      color: 'var(--text-body)',
                       cursor: 'pointer'
                     }}
                   >

@@ -53,6 +53,88 @@
   --container-max: 1240px;
   --transition-fast: 0.18s ease;
   --transition-normal: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Semantic aliases (used by components; flip in dark mode) */
+  --surface-card: #FFFFFF;
+  --surface-subtle: #F8FAFC;
+  --surface-raised: #F1F5F9;
+  --surface-danger: #FEE2E2;
+  --surface-warn: #FFEDD5;
+  --surface-info: #E0F2FE;
+  --surface-warm: #FDFBF7;
+  --surface-highlight: #FEF3C7;
+  --text-highlight: #92400E;
+  --chat-bg: #ECE5DD;
+  --border-strong: #CBD5E1;
+  --text-strong: #0F172A;
+  --text-body: #475569;
+  --text-heading: #062E1D;
+  --text-green: #0C6837;
+  --text-green-strong: #166534;
+  --text-danger: #DC2626;
+  --text-success: #16A34A;
+  --text-warn: #C2410C;
+  --text-info: #0369A1;
+  --text-accent: #7C3AED;
+  --text-amber: #F59E0B;
+
+  /* Chat */
+  --chat-bubble-user: #DCF8C6;
+}
+
+/* ==========================================================================
+   DARK THEME — applied via data-theme="dark" on <html>
+   Brand greens stay; surfaces/text/borders flip to a deep forest palette.
+   ========================================================================== */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg-primary: #042114;
+  --bg-darker: #021108;
+  --bg-forest: #062E1D;
+
+  --surface-white: #0F1D16;
+  --surface-offwhite: #08130E;
+  --surface-cream: #0F1D16;
+  --surface-mint: #0C2117;
+  --surface-green-tint: #123524;
+  --surface-card: #0F1D16;
+  --surface-subtle: #12231A;
+  --surface-raised: #16291F;
+  --surface-danger: #3B1619;
+
+  --text-main: #E7F0EA;
+  --text-strong: #E7F0EA;
+  --text-muted: #9FB3A7;
+  --text-light: #7F9489;
+  --text-body: #B7C7BE;
+  --text-heading: #A7F3D0;
+  --text-green: #5FD98C;
+  --text-green-strong: #86EFAC;
+  --text-danger: #F87171;
+  --text-success: #4ADE80;
+
+  --border-light: #1D3628;
+  --border-strong: #264636;
+  --border-green: #1E4D38;
+  --border-dark-green: #14532D;
+  --surface-warn: #3B2414;
+  --surface-info: #0C2A3E;
+  --surface-warm: #101C15;
+  --surface-highlight: #3B3210;
+  --text-highlight: #FCD34D;
+  --text-warn: #FDBA74;
+  --text-info: #7DD3FC;
+  --text-accent: #C4B5FD;
+  --text-amber: #FCD34D;
+  --chat-bg: #111B21;
+  --chat-bubble-user: #005C4B;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.55), 0 4px 6px -4px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+  --shadow-card-hover: 0 14px 28px -4px rgba(0, 0, 0, 0.55), 0 6px 12px -2px rgba(0, 0, 0, 0.45);
 }
 
 *, *::before, *::after {
@@ -96,7 +178,7 @@ input, select, textarea {
    ========================================================================== */
 .view-switcher-bar {
   background: #03180E;
-  color: #94A3B8;
+  color: var(--text-light);
   padding: 6px 16px;
   font-size: 0.8rem;
   display: flex;
@@ -506,14 +588,14 @@ input, select, textarea {
 
 .hero-badge-text-sub {
   font-size: 0.72rem;
-  color: #94A3B8;
+  color: var(--text-light);
 }
 
 /* ==========================================================================
    TRUST / VALUE PROPOSITION STRIP
    ========================================================================== */
 .trust-strip {
-  background: #FFFFFF;
+  background: var(--surface-card);
   border-bottom: 1px solid var(--border-light);
   box-shadow: var(--shadow-sm);
   padding: 22px 0;
@@ -584,7 +666,7 @@ input, select, textarea {
 .section-title {
   font-size: 1.65rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
   letter-spacing: -0.02em;
 }
 
@@ -610,7 +692,7 @@ input, select, textarea {
 }
 
 .category-card {
-  background: #FFFFFF;
+  background: var(--surface-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 16px 12px;
@@ -640,13 +722,13 @@ input, select, textarea {
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #F8FAFC;
+  background: var(--surface-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
   overflow: hidden;
-  border: 2px solid #E2E8F0;
+  border: 2px solid var(--border-light);
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
@@ -673,7 +755,7 @@ input, select, textarea {
 }
 
 .product-card {
-  background: #FFFFFF;
+  background: var(--surface-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 14px;
@@ -699,19 +781,19 @@ input, select, textarea {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(4px);
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #94A3B8;
+  color: var(--text-light);
   z-index: 5;
   transition: all var(--transition-fast);
 }
 
 .product-wishlist-btn:hover, .product-wishlist-btn.active {
-  color: #EF4444;
-  background: #FEF2F2;
-  border-color: #FECACA;
+  color: var(--text-danger);
+  background: var(--surface-danger);
+  border-color: var(--text-danger);
   transform: scale(1.1);
 }
 
@@ -746,7 +828,7 @@ input, select, textarea {
 .product-thumb-wrap {
   width: 100%;
   aspect-ratio: 1;
-  background: #F8FAFC;
+  background: var(--surface-subtle);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
@@ -772,7 +854,7 @@ input, select, textarea {
   font-size: 0.72rem;
   font-weight: 600;
   text-transform: uppercase;
-  color: #94A3B8;
+  color: var(--text-light);
   margin-bottom: 4px;
 }
 
@@ -804,12 +886,12 @@ input, select, textarea {
 .product-price {
   font-size: 1.08rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
 }
 
 .product-price-original {
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: var(--text-light);
   text-decoration: line-through;
 }
 
@@ -926,7 +1008,7 @@ input, select, textarea {
 
 .breadcrumbs {
   font-size: 0.82rem;
-  color: #94A3B8;
+  color: var(--text-light);
   margin-top: 10px;
   display: flex;
   align-items: center;
@@ -952,7 +1034,7 @@ input, select, textarea {
 }
 
 .filter-block {
-  background: #FFFFFF;
+  background: var(--surface-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 20px;
@@ -962,7 +1044,7 @@ input, select, textarea {
 .filter-title {
   font-size: 0.95rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
   margin-bottom: 16px;
   display: flex;
   align-items: center;
@@ -1002,7 +1084,7 @@ input, select, textarea {
 .filter-count {
   font-size: 0.75rem;
   color: var(--text-muted);
-  background: #F1F5F9;
+  background: var(--surface-raised);
   padding: 2px 7px;
   border-radius: var(--radius-pill);
 }
@@ -1048,7 +1130,7 @@ input, select, textarea {
   padding: 8px 14px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-light);
-  background: #FFFFFF;
+  background: var(--surface-card);
   color: var(--text-main);
   font-weight: 600;
   cursor: pointer;
@@ -1067,7 +1149,7 @@ input, select, textarea {
   height: 38px;
   border-radius: 50%;
   border: 1px solid var(--border-light);
-  background: #FFFFFF;
+  background: var(--surface-card);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1091,7 +1173,7 @@ input, select, textarea {
    PRODUCT DETAIL VIEW (SCREEN 3)
    ========================================================================== */
 .product-detail-card {
-  background: #FFFFFF;
+  background: var(--surface-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-xl);
   padding: 36px;
@@ -1105,9 +1187,9 @@ input, select, textarea {
 .gallery-main-wrap {
   width: 100%;
   aspect-ratio: 1;
-  background: #F8FAFC;
+  background: var(--surface-subtle);
   border-radius: var(--radius-lg);
-  border: 1px solid #E2E8F0;
+  border: 1px solid var(--border-light);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1131,8 +1213,8 @@ input, select, textarea {
   width: 72px;
   height: 72px;
   border-radius: var(--radius-md);
-  border: 2px solid #E2E8F0;
-  background: #F8FAFC;
+  border: 2px solid var(--border-light);
+  background: var(--surface-subtle);
   overflow: hidden;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -1157,7 +1239,7 @@ input, select, textarea {
 .detail-title {
   font-size: 1.85rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
   margin-bottom: 8px;
 }
 
@@ -1170,7 +1252,7 @@ input, select, textarea {
 
 .stars-row {
   display: flex;
-  color: #F59E0B;
+  color: var(--text-amber);
 }
 
 .reviews-count-text {
@@ -1188,19 +1270,19 @@ input, select, textarea {
 .detail-price-main {
   font-size: 1.8rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
 }
 
 .detail-price-crossed {
   font-size: 1.1rem;
-  color: #94A3B8;
+  color: var(--text-light);
   text-decoration: line-through;
 }
 
 .detail-discount-pill {
   padding: 4px 10px;
-  background: #FEE2E2;
-  color: #DC2626;
+  background: var(--surface-danger);
+  color: var(--text-danger);
   font-size: 0.78rem;
   font-weight: 800;
   border-radius: var(--radius-pill);
@@ -1208,7 +1290,7 @@ input, select, textarea {
 
 .detail-desc {
   font-size: 0.95rem;
-  color: #475569;
+  color: var(--text-body);
   line-height: 1.6;
   margin-bottom: 20px;
 }
@@ -1247,7 +1329,7 @@ input, select, textarea {
   align-items: center;
   border: 1px solid var(--border-light);
   border-radius: var(--radius-pill);
-  background: #FFFFFF;
+  background: var(--surface-card);
   padding: 4px;
 }
 
@@ -1263,7 +1345,7 @@ input, select, textarea {
 }
 
 .qty-stepper-btn:hover {
-  background: #F1F5F9;
+  background: var(--surface-raised);
 }
 
 .qty-stepper-val {
@@ -1312,14 +1394,14 @@ input, select, textarea {
   padding: 14px 0;
   font-size: 0.92rem;
   font-weight: 700;
-  color: #062E1D;
+  color: var(--text-heading);
   text-align: left;
 }
 
 .accordion-body {
   padding: 0 0 16px 0;
   font-size: 0.88rem;
-  color: #475569;
+  color: var(--text-body);
   line-height: 1.6;
 }
 
@@ -1342,7 +1424,7 @@ input, select, textarea {
   bottom: 0;
   width: 100%;
   max-width: 440px;
-  background: #FFFFFF;
+  background: var(--surface-card);
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
   z-index: 1200;
   display: flex;
@@ -1371,7 +1453,7 @@ input, select, textarea {
 .drawer-title {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
 }
 
 .drawer-close-link {
@@ -1399,14 +1481,14 @@ input, select, textarea {
   align-items: center;
   gap: 14px;
   padding-bottom: 14px;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .cart-item-thumb {
   width: 64px;
   height: 64px;
   border-radius: var(--radius-md);
-  background: #F8FAFC;
+  background: var(--surface-subtle);
   border: 1px solid var(--border-light);
   padding: 4px;
   flex-shrink: 0;
@@ -1432,7 +1514,7 @@ input, select, textarea {
 .cart-item-price {
   font-size: 0.92rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
   margin-top: 4px;
 }
 
@@ -1444,18 +1526,18 @@ input, select, textarea {
 }
 
 .cart-item-remove-btn {
-  color: #94A3B8;
+  color: var(--text-light);
   padding: 4px;
 }
 
 .cart-item-remove-btn:hover {
-  color: #EF4444;
+  color: var(--text-danger);
 }
 
 .drawer-footer {
   padding: 20px 24px;
   border-top: 1px solid var(--border-light);
-  background: #F8FAFC;
+  background: var(--surface-subtle);
 }
 
 .promo-code-box {
@@ -1469,7 +1551,7 @@ input, select, textarea {
   padding: 8px 14px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-light);
-  background: #FFFFFF;
+  background: var(--surface-card);
   font-size: 0.85rem;
 }
 
@@ -1500,10 +1582,10 @@ input, select, textarea {
 .order-summary-row.total-row {
   font-size: 1.15rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid #E2E8F0;
+  border-top: 1px solid var(--border-light);
 }
 
 .drawer-checkout-btn {
@@ -1549,7 +1631,7 @@ input, select, textarea {
   gap: 8px;
   font-size: 0.85rem;
   font-weight: 700;
-  color: #94A3B8;
+  color: var(--text-light);
 }
 
 .step-indicator.active {
@@ -1560,7 +1642,7 @@ input, select, textarea {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #E2E8F0;
+  background: var(--surface-raised);
   color: var(--text-main);
   display: flex;
   align-items: center;
@@ -1574,7 +1656,7 @@ input, select, textarea {
 }
 
 .form-card {
-  background: #FFFFFF;
+  background: var(--surface-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 24px;
@@ -1585,7 +1667,7 @@ input, select, textarea {
 .form-title {
   font-size: 1.05rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
   margin-bottom: 18px;
 }
 
@@ -1613,7 +1695,7 @@ input, select, textarea {
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
   font-size: 0.9rem;
-  background: #FFFFFF;
+  background: var(--surface-card);
   transition: border-color var(--transition-fast);
 }
 
@@ -1661,7 +1743,7 @@ input, select, textarea {
 }
 
 .dashboard-sidebar {
-  background: #FFFFFF;
+  background: var(--surface-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 20px 14px;
@@ -1684,8 +1766,8 @@ input, select, textarea {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #DCFCE7;
-  color: #0C6837;
+  background: var(--surface-green-tint);
+  color: var(--text-green);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1708,7 +1790,7 @@ input, select, textarea {
 }
 
 .dash-nav-btn:hover {
-  background: #F1F5F9;
+  background: var(--surface-raised);
   color: var(--brand-green);
 }
 
@@ -1726,7 +1808,7 @@ input, select, textarea {
 }
 
 .stat-card {
-  background: #FFFFFF;
+  background: var(--surface-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 20px;
@@ -1742,7 +1824,7 @@ input, select, textarea {
 .stat-val {
   font-size: 2rem;
   font-weight: 800;
-  color: #062E1D;
+  color: var(--text-heading);
   margin-top: 6px;
 }
 
@@ -1755,7 +1837,7 @@ input, select, textarea {
 .orders-table th {
   text-align: left;
   padding: 12px 16px;
-  background: #F8FAFC;
+  background: var(--surface-subtle);
   color: var(--text-muted);
   font-weight: 700;
   font-size: 0.78rem;
@@ -1765,7 +1847,7 @@ input, select, textarea {
 
 .orders-table td {
   padding: 14px 16px;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .status-badge {
@@ -1778,18 +1860,18 @@ input, select, textarea {
 }
 
 .status-delivered {
-  background: #DCFCE7;
-  color: #166534;
+  background: var(--surface-green-tint);
+  color: var(--text-green-strong);
 }
 
 .status-transit {
-  background: #E0F2FE;
-  color: #0369A1;
+  background: var(--surface-info);
+  color: var(--text-info);
 }
 
 .status-processing {
-  background: #FEF3C7;
-  color: #92400E;
+  background: var(--surface-highlight);
+  color: var(--text-highlight);
 }
 
 /* ==========================================================================
@@ -1803,7 +1885,7 @@ input, select, textarea {
 }
 
 .admin-card {
-  background: #FFFFFF;
+  background: var(--surface-card);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
   padding: 20px;
@@ -1820,7 +1902,7 @@ input, select, textarea {
 .metric-trend {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #16A34A;
+  color: var(--text-success);
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -1837,12 +1919,12 @@ input, select, textarea {
   align-items: center;
   justify-content: space-between;
   padding: 10px 0;
-  border-bottom: 1px solid #F1F5F9;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .stock-tag-red {
-  background: #FEE2E2;
-  color: #DC2626;
+  background: var(--surface-danger);
+  color: var(--text-danger);
   font-size: 0.72rem;
   font-weight: 800;
   padding: 2px 8px;
@@ -1911,7 +1993,7 @@ input, select, textarea {
   flex-direction: column;
   align-items: center;
   font-size: 0.68rem;
-  color: #94A3B8;
+  color: var(--text-light);
   gap: 2px;
 }
 
@@ -1952,7 +2034,7 @@ input, select, textarea {
 
 .footer-links a {
   font-size: 0.88rem;
-  color: #94A3B8;
+  color: var(--text-light);
   transition: color var(--transition-fast);
 }
 
@@ -1965,7 +2047,7 @@ input, select, textarea {
   align-items: center;
   gap: 12px;
   font-size: 0.88rem;
-  color: #94A3B8;
+  color: var(--text-light);
   margin-bottom: 12px;
 }
 
@@ -1976,7 +2058,7 @@ input, select, textarea {
   align-items: center;
   justify-content: space-between;
   font-size: 0.82rem;
-  color: #64748B;
+  color: var(--text-muted);
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -1986,7 +2068,7 @@ input, select, textarea {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding: 14px 24px;
   font-size: 0.78rem;
-  color: #94A3B8;
+  color: var(--text-light);
   display: flex;
   align-items: center;
   justify-content: space-between;

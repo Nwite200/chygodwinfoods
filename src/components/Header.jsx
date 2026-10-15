@@ -1,7 +1,8 @@
-import React from 'react';
-import { Search, ShoppingCart, User, ShieldCheck, MapPin, Truck, Phone } from 'lucide-react';
+import React, { useState } from 'react';
+import { Search, ShoppingCart, User, ShieldCheck, MapPin, Truck, Phone, Sun, Moon } from 'lucide-react';
 import { STORE_INFO } from '../data/products';
 import StoreLogo from './StoreLogo';
+import { toggleTheme } from '../utils/theme';
 
 export default function Header({
   activeView,
@@ -11,6 +12,8 @@ export default function Header({
   searchTerm,
   setSearchTerm
 }) {
+  const [theme, setTheme] = useState(() => document.documentElement.getAttribute('data-theme') || 'light');
+
   return (
     <header>
       {/* Top Business & Delivery Announcement Bar */}
@@ -20,7 +23,7 @@ export default function Header({
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#4ADE80', fontWeight: 700 }}>
               <MapPin size={13} /> Located at Nkwelle Light of God estate
             </span>
-            <span style={{ color: '#64748B' }}>•</span>
+            <span style={{ color: 'var(--text-muted)' }}>•</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <Truck size={13} color="#38BDF8" /> We waybill &amp; deliver Nationwide &amp; beyond
             </span>
@@ -30,7 +33,7 @@ export default function Header({
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <Phone size={12} color="#FBBF24" /> Call / WhatsApp: <strong style={{ color: '#FFF' }}>08063654393</strong>
             </span>
-            <span style={{ color: '#64748B' }}>|</span>
+            <span style={{ color: 'var(--text-muted)' }}>|</span>
             <span style={{ color: '#A7F3D0' }}>
               Quality &amp; affordable prices
             </span>
@@ -97,7 +100,7 @@ export default function Header({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 5,
-                color: activeView === 'admin' ? '#0C6837' : '#0F172A',
+                color: activeView === 'admin' ? 'var(--text-green)' : 'var(--text-strong)',
                 fontWeight: 800
               }}
             >
@@ -120,11 +123,20 @@ export default function Header({
           <div className="header-actions">
             <button
               className="header-btn"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label="Toggle color theme"
+              onClick={() => setTheme(toggleTheme())}
+            >
+              {theme === 'dark' ? <Sun size={19} /> : <Moon size={19} />}
+            </button>
+
+            <button
+              className="header-btn"
               title="Admin Dashboard (Product Upload &amp; Price Changes)"
               onClick={() => setActiveView('admin')}
               style={{
-                background: activeView === 'admin' ? '#DCFCE7' : '#F1F5F9',
-                color: activeView === 'admin' ? '#166534' : '#0F172A',
+                background: activeView === 'admin' ? 'var(--surface-green-tint)' : 'var(--surface-raised)',
+                color: activeView === 'admin' ? 'var(--text-green-strong)' : 'var(--text-strong)',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,

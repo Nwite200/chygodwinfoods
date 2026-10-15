@@ -77,19 +77,19 @@ export default function AccountView({
         <div className="section-container" style={{ maxWidth: 560 }}>
           <div className="form-card" style={{ textAlign: 'center', padding: '40px 28px' }}>
             <LogIn size={28} color="#0C6837" style={{ marginBottom: 12 }} />
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#062E1D', marginBottom: 8 }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-heading)', marginBottom: 8 }}>
               Sign in to your account
             </h1>
-            <p style={{ color: '#64748B', marginBottom: 24 }}>
+            <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>
               Sign in with the same account on the website and mobile app to share your cart.
             </p>
             {authError && (
-              <p role="alert" style={{ color: '#B91C1C', marginBottom: 16 }}>
+              <p role="alert" style={{ color: 'var(--text-danger)', marginBottom: 16 }}>
                 {authError}
               </p>
             )}
             {!authConfigured && (
-              <p role="status" style={{ color: '#64748B', marginBottom: 16 }}>
+              <p role="status" style={{ color: 'var(--text-muted)', marginBottom: 16 }}>
                 Google sign-in is not configured for this deployment yet.
               </p>
             )}
@@ -102,7 +102,7 @@ export default function AccountView({
               <LogIn size={18} />
               Continue with Google
             </button>
-            <div style={{ margin: '24px 0 16px', color: '#64748B', fontSize: '0.85rem' }}>or use email</div>
+            <div style={{ margin: '24px 0 16px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>or use email</div>
             <form onSubmit={handleEmailAuth} style={{ textAlign: 'left' }}>
               <label htmlFor="account-email" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: 6 }}>
                 Email
@@ -114,7 +114,7 @@ export default function AccountView({
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                style={{ boxSizing: 'border-box', width: '100%', padding: 12, border: '1px solid #CBD5E1', borderRadius: 10, marginBottom: 14 }}
+                style={{ boxSizing: 'border-box', width: '100%', padding: 12, border: '1px solid var(--border-strong)', borderRadius: 10, marginBottom: 14 }}
               />
               <label htmlFor="account-password" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: 6 }}>
                 Password
@@ -127,7 +127,7 @@ export default function AccountView({
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                style={{ boxSizing: 'border-box', width: '100%', padding: 12, border: '1px solid #CBD5E1', borderRadius: 10 }}
+                style={{ boxSizing: 'border-box', width: '100%', padding: 12, border: '1px solid var(--border-strong)', borderRadius: 10 }}
               />
               <button
                 type="submit"
@@ -141,7 +141,7 @@ export default function AccountView({
             <button
               type="button"
               onClick={() => setAuthMode((mode) => mode === 'sign-in' ? 'register' : 'sign-in')}
-              style={{ marginTop: 14, color: '#0C6837', fontWeight: 700 }}
+              style={{ marginTop: 14, color: 'var(--text-green)', fontWeight: 700 }}
             >
               {authMode === 'sign-in' ? 'New here? Create an account' : 'Already registered? Sign in'}
             </button>
@@ -160,8 +160,8 @@ export default function AccountView({
             <div className="user-profile-widget">
               <div className="user-avatar">{displayName.charAt(0).toUpperCase()}</div>
               <div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#062E1D' }}>{displayName}</h4>
-                <span style={{ fontSize: '0.75rem', color: '#64748B' }}>{user.email}</span>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-heading)' }}>{displayName}</h4>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user.email}</span>
               </div>
             </div>
 
@@ -215,7 +215,7 @@ export default function AccountView({
 
             <button
               className="dash-nav-btn"
-              style={{ color: '#DC2626', marginTop: 12 }}
+              style={{ color: 'var(--text-danger)', marginTop: 12 }}
               onClick={onSignOut}
             >
               <LogOut size={18} />
@@ -227,10 +227,10 @@ export default function AccountView({
           <main>
             {/* Header Greeting */}
             <div style={{ marginBottom: 24 }}>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#062E1D' }}>
+              <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-heading)' }}>
                 Welcome back, {displayName}!
               </h1>
-              <p style={{ color: '#64748B', fontSize: '0.9rem' }}>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 Here's what's happening with your account and orders.
               </p>
             </div>
@@ -243,21 +243,21 @@ export default function AccountView({
               </div>
               <div className="stat-card">
                 <span className="stat-title">In Cart</span>
-                <div className="stat-val" style={{ color: '#0C6837' }}>{cartCount}</div>
+                <div className="stat-val" style={{ color: 'var(--text-green)' }}>{cartCount}</div>
               </div>
               <div className="stat-card">
                 <span className="stat-title">Wishlist Items</span>
-                <div className="stat-val" style={{ color: '#EF4444' }}>{wishlist.length}</div>
+                <div className="stat-val" style={{ color: 'var(--text-danger)' }}>{wishlist.length}</div>
               </div>
             </div>
 
             {/* Track Order Bar */}
             <div
               style={{
-                background: '#FFFFFF',
+                background: 'var(--surface-card)',
                 borderRadius: 14,
                 padding: 20,
-                border: '1px solid #E2E8F0',
+                border: '1px solid var(--border-light)',
                 marginBottom: 28,
                 display: 'flex',
                 alignItems: 'center',
@@ -285,8 +285,8 @@ export default function AccountView({
             {trackingResult && (
               <div
                 style={{
-                  background: trackingResult === 'not-found' ? '#FEF2F2' : '#F0FDF4',
-                  border: `1px solid ${trackingResult === 'not-found' ? '#FECACA' : '#BBF7D0'}`,
+                  background: trackingResult === 'not-found' ? 'var(--surface-danger)' : 'var(--surface-mint)',
+                  border: `1px solid ${trackingResult === 'not-found' ? 'var(--text-danger)' : 'var(--border-green)'}`,
                   borderRadius: 10,
                   padding: 16,
                   marginBottom: 24,
@@ -294,10 +294,10 @@ export default function AccountView({
                 }}
               >
                 {trackingResult === 'not-found' ? (
-                  <p style={{ color: '#DC2626' }}>No order found matching "{trackingSearch}".</p>
+                  <p style={{ color: 'var(--text-danger)' }}>No order found matching "{trackingSearch}".</p>
                 ) : (
                   <div>
-                    <strong style={{ color: '#166534' }}>Order #{trackingResult.id} Found!</strong>
+                    <strong style={{ color: 'var(--text-green-strong)' }}>Order #{trackingResult.id} Found!</strong>
                     <p style={{ marginTop: 4 }}>
                       Status: <strong>{trackingResult.status}</strong> | Total: ₦{trackingResult.total.toLocaleString()} | Tracking Code: <code>{trackingResult.tracking}</code>
                     </p>
@@ -311,7 +311,7 @@ export default function AccountView({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                 <h3 className="form-title" style={{ margin: 0 }}>Recent Orders</h3>
                 <button
-                  style={{ fontSize: '0.82rem', color: '#0C6837', fontWeight: 700 }}
+                  style={{ fontSize: '0.82rem', color: 'var(--text-green)', fontWeight: 700 }}
                   onClick={() => setActiveTab('orders')}
                 >
                   View All Orders &gt;
@@ -334,7 +334,7 @@ export default function AccountView({
                     {orders.map((ord) => (
                       <tr key={ord.id}>
                         <td>
-                          <strong style={{ color: '#062E1D' }}>#{ord.id}</strong>
+                          <strong style={{ color: 'var(--text-heading)' }}>#{ord.id}</strong>
                         </td>
                         <td>{ord.date}</td>
                         <td>
@@ -362,12 +362,12 @@ export default function AccountView({
                           <button
                             style={{
                               fontSize: '0.78rem',
-                              color: '#0C6837',
+                              color: 'var(--text-green)',
                               fontWeight: 700,
-                              background: '#F0FDF4',
+                              background: 'var(--surface-mint)',
                               padding: '4px 10px',
                               borderRadius: 9999,
-                              border: '1px solid #BBF7D0'
+                              border: '1px solid var(--border-green)'
                             }}
                             onClick={() => {
                               setTrackingSearch(ord.id);
@@ -388,44 +388,44 @@ export default function AccountView({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginTop: 24 }}>
               <div
                 style={{
-                  background: '#FFFFFF',
+                  background: 'var(--surface-card)',
                   borderRadius: 14,
                   padding: 16,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-light)',
                   cursor: 'pointer'
                 }}
                 onClick={() => onNavigate('shop')}
               >
-                <div style={{ fontWeight: 700, color: '#062E1D', fontSize: '0.9rem' }}>📦 Reorder Staples</div>
-                <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: 4 }}>Fast repeat orders of your favorite Semo, Garri &amp; Oil</p>
+                <div style={{ fontWeight: 700, color: 'var(--text-heading)', fontSize: '0.9rem' }}>📦 Reorder Staples</div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>Fast repeat orders of your favorite Semo, Garri &amp; Oil</p>
               </div>
 
               <div
                 style={{
-                  background: '#FFFFFF',
+                  background: 'var(--surface-card)',
                   borderRadius: 14,
                   padding: 16,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-light)',
                   cursor: 'pointer'
                 }}
                 onClick={() => setActiveTab('addresses')}
               >
-                <div style={{ fontWeight: 700, color: '#062E1D', fontSize: '0.9rem' }}>📍 My Addresses</div>
-                <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: 4 }}>Manage shipping addresses in Onitsha, Lagos &amp; Abuja</p>
+                <div style={{ fontWeight: 700, color: 'var(--text-heading)', fontSize: '0.9rem' }}>📍 My Addresses</div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>Manage shipping addresses in Onitsha, Lagos &amp; Abuja</p>
               </div>
 
               <div
                 style={{
-                  background: '#FFFFFF',
+                  background: 'var(--surface-card)',
                   borderRadius: 14,
                   padding: 16,
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid var(--border-light)',
                   cursor: 'pointer'
                 }}
                 onClick={() => alert('Customer Support: Call +234 801 234 5678 or Email info@chygodwin.com')}
               >
-                <div style={{ fontWeight: 700, color: '#062E1D', fontSize: '0.9rem' }}>💬 Support Helpdesk</div>
-                <p style={{ fontSize: '0.78rem', color: '#64748B', marginTop: 4 }}>Live WhatsApp chat &amp; phone assistance</p>
+                <div style={{ fontWeight: 700, color: 'var(--text-heading)', fontSize: '0.9rem' }}>💬 Support Helpdesk</div>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 4 }}>Live WhatsApp chat &amp; phone assistance</p>
               </div>
             </div>
           </main>

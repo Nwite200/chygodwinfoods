@@ -63,9 +63,9 @@ export default function CartDrawer({
         {/* Body Items List */}
         <div className="drawer-body">
           {cartItems.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748B' }}>
-              <ShoppingBag size={48} strokeWidth={1.2} style={{ margin: '0 auto 12px auto', color: '#CBD5E1' }} />
-              <p style={{ fontWeight: 700, fontSize: '1rem', color: '#062E1D', marginBottom: 4 }}>
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+              <ShoppingBag size={48} strokeWidth={1.2} style={{ margin: '0 auto 12px auto', color: 'var(--border-strong)' }} />
+              <p style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-heading)', marginBottom: 4 }}>
                 Your cart is currently empty
               </p>
               <p style={{ fontSize: '0.85rem' }}>Add some fresh Nigerian foodstuffs to begin!</p>
@@ -109,7 +109,7 @@ export default function CartDrawer({
                     </button>
                   </div>
                 </div>
-                <div style={{ textAlign: 'right', fontWeight: 800, fontSize: '0.92rem', color: '#062E1D' }}>
+                <div style={{ textAlign: 'right', fontWeight: 800, fontSize: '0.92rem', color: 'var(--text-heading)' }}>
                   ₦{(item.price * item.quantity).toLocaleString()}
                 </div>
               </div>
@@ -140,7 +140,7 @@ export default function CartDrawer({
                   fontSize: '0.78rem',
                   fontWeight: 600,
                   marginBottom: 12,
-                  color: promoMessage.type === 'success' ? '#16A34A' : '#DC2626'
+                  color: promoMessage.type === 'success' ? 'var(--text-success)' : 'var(--text-danger)'
                 }}
               >
                 {promoMessage.text}
@@ -150,11 +150,11 @@ export default function CartDrawer({
             {/* Calculations Breakdown */}
             <div className="order-summary-row">
               <span>Subtotal</span>
-              <span style={{ fontWeight: 700, color: '#0F172A' }}>₦{subtotal.toLocaleString()}</span>
+              <span style={{ fontWeight: 700, color: 'var(--text-strong)' }}>₦{subtotal.toLocaleString()}</span>
             </div>
 
             {discountVal > 0 && (
-              <div className="order-summary-row" style={{ color: '#16A34A' }}>
+              <div className="order-summary-row" style={{ color: 'var(--text-success)' }}>
                 <span>Promo Discount ({promoCode})</span>
                 <span style={{ fontWeight: 700 }}>-₦{discountVal.toLocaleString()}</span>
               </div>
@@ -162,8 +162,8 @@ export default function CartDrawer({
 
             <div className="order-summary-row">
               <span>Shipping</span>
-              <span style={{ fontWeight: 700, color: '#0F172A' }}>
-                {shipping === 0 ? <span style={{ color: '#16A34A' }}>FREE</span> : `₦${shipping.toLocaleString()}`}
+              <span style={{ fontWeight: 700, color: 'var(--text-strong)' }}>
+                {shipping === 0 ? <span style={{ color: 'var(--text-success)' }}>FREE</span> : `₦${shipping.toLocaleString()}`}
               </span>
             </div>
 

@@ -266,7 +266,7 @@ export default function WhatsAppChat({ products = [], cartItems = [], onAddToCar
       )}
       <style>{`@keyframes chatPulse { 0%,100% { transform: scale(1); box-shadow: 0 12px 30px rgba(37,211,102,0.45);} 50% { transform: scale(1.12); box-shadow: 0 12px 42px rgba(37,211,102,0.75);} }`}</style>
       {open && (
-        <div style={{ position: 'fixed', bottom: 22, right: 22, zIndex: 5000, width: 'min(380px, calc(100vw - 32px))', height: 'min(560px, calc(100vh - 120px))', background: '#fff', borderRadius: 18, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', border: '1px solid #E2E8F0' }}>
+        <div style={{ position: 'fixed', bottom: 22, right: 22, zIndex: 5000, width: 'min(380px, calc(100vw - 32px))', height: 'min(560px, calc(100vh - 120px))', background: 'var(--surface-card)', borderRadius: 18, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', border: '1px solid var(--border-light)' }}>
           <div style={{ background: '#075E54', color: '#fff', padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 42, height: 42, borderRadius: '50%', background: '#25D366', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: '1.1rem' }}>C</div>
             <div style={{ flex: 1 }}>
@@ -275,19 +275,19 @@ export default function WhatsAppChat({ products = [], cartItems = [], onAddToCar
             </div>
             <button onClick={() => setOpen(false)} aria-label="Close chat" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={18} /></button>
           </div>
-          <div style={{ display: 'flex', gap: 6, padding: '8px 10px', overflowX: 'auto', borderBottom: '1px solid #F1F5F9', background: '#F8FAFC', alignItems: 'center' }}>
-            {QUICK.map((q) => <button key={q.id} onClick={() => quick(q.id)} style={{ whiteSpace: 'nowrap', background: '#fff', border: '1px solid #BBF7D0', color: '#166534', borderRadius: 9999, padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>{q.label}</button>)}
-            <button onClick={() => setVoiceOn((v) => { const n = !v; if (!n && 'speechSynthesis' in window) window.speechSynthesis.cancel(); return n; })} title={voiceOn ? 'Mute bot voice' : 'Unmute bot voice'} style={{ marginLeft: 'auto', whiteSpace: 'nowrap', background: voiceOn ? '#DCFCE7' : '#F1F5F9', border: '1px solid #BBF7D0', color: '#166534', borderRadius: 9999, padding: '6px 10px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', gap: 6, padding: '8px 10px', overflowX: 'auto', borderBottom: '1px solid var(--border-light)', background: 'var(--surface-subtle)', alignItems: 'center' }}>
+            {QUICK.map((q) => <button key={q.id} onClick={() => quick(q.id)} style={{ whiteSpace: 'nowrap', background: 'var(--surface-card)', border: '1px solid var(--border-green)', color: 'var(--text-green-strong)', borderRadius: 9999, padding: '6px 12px', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>{q.label}</button>)}
+            <button onClick={() => setVoiceOn((v) => { const n = !v; if (!n && 'speechSynthesis' in window) window.speechSynthesis.cancel(); return n; })} title={voiceOn ? 'Mute bot voice' : 'Unmute bot voice'} style={{ marginLeft: 'auto', whiteSpace: 'nowrap', background: voiceOn ? 'var(--surface-green-tint)' : 'var(--surface-raised)', border: '1px solid var(--border-green)', color: 'var(--text-green-strong)', borderRadius: 9999, padding: '6px 10px', fontSize: '0.75rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
               {voiceOn ? <Volume2 size={14} /> : <VolumeX size={14} />} {voiceOn ? 'Voice on' : 'Muted'}
             </button>
           </div>
-          <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: 12, background: '#ECE5DD', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: 12, background: 'var(--chat-bg)', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {messages.map((m) => (
               <div key={m.id} style={{ alignSelf: m.from === 'user' ? 'flex-end' : 'flex-start', maxWidth: '88%' }}>
-                <div style={{ background: m.from === 'user' ? '#DCF8C6' : '#fff', borderRadius: 12, padding: '9px 12px', fontSize: '0.83rem', lineHeight: 1.5, whiteSpace: 'pre-line', color: '#1F2937', boxShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
+                <div style={{ background: m.from === 'user' ? 'var(--chat-bubble-user)' : 'var(--surface-card)', borderRadius: 12, padding: '9px 12px', fontSize: '0.83rem', lineHeight: 1.5, whiteSpace: 'pre-line', color: 'var(--text-body)', boxShadow: '0 1px 2px rgba(0,0,0,0.12)' }}>
                   <div>{m.text}</div>
                   {m.from === 'bot' && (
-                    <button onClick={() => speakText(m.text, true)} title="Listen to this reply" style={{ marginTop: 6, background: '#F0FDF4', border: '1px solid #BBF7D0', color: '#166534', borderRadius: 9999, padding: '3px 10px', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <button onClick={() => speakText(m.text, true)} title="Listen to this reply" style={{ marginTop: 6, background: 'var(--surface-mint)', border: '1px solid var(--border-green)', color: 'var(--text-green-strong)', borderRadius: 9999, padding: '3px 10px', fontSize: '0.7rem', fontWeight: 800, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <Volume2 size={12} /> Listen
                     </button>
                   )}
@@ -295,10 +295,10 @@ export default function WhatsAppChat({ products = [], cartItems = [], onAddToCar
                 {m.products && m.products.length > 0 && (
                   <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {m.products.map((p) => (
-                      <div key={p.id} style={{ background: '#fff', borderRadius: 10, padding: 8, display: 'flex', gap: 8, alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+                      <div key={p.id} style={{ background: 'var(--surface-card)', borderRadius: 10, padding: 8, display: 'flex', gap: 8, alignItems: 'center', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#062E1D', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
-                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0C6837' }}>{formatNaira(p.price)}</div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-heading)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+                          <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-green)' }}>{formatNaira(p.price)}</div>
                         </div>
                         <button onClick={() => onAddToCart && onAddToCart(p)} style={{ background: '#22C55E', border: 'none', color: '#fff', borderRadius: 8, padding: '6px 10px', fontSize: '0.72rem', fontWeight: 800, cursor: 'pointer' }}>Add</button>
                       </div>
@@ -316,13 +316,13 @@ export default function WhatsAppChat({ products = [], cartItems = [], onAddToCar
             ))}
           </div>
           {cartItems.length > 0 && (
-            <button onClick={sendOrder} style={{ background: '#F0FDF4', border: 'none', borderTop: '1px solid #BBF7D0', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }}>
-              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#166534', display: 'flex', alignItems: 'center', gap: 6 }}><ShoppingCart size={15} /> {cartItems.length} in cart</span>
-              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#0C6837', display: 'flex', alignItems: 'center', gap: 2 }}>{formatNaira(cartTotal)} - Order now <ChevronRight size={15} /></span>
+            <button onClick={sendOrder} style={{ background: 'var(--surface-mint)', border: 'none', borderTop: '1px solid var(--border-green)', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-green-strong)', display: 'flex', alignItems: 'center', gap: 6 }}><ShoppingCart size={15} /> {cartItems.length} in cart</span>
+              <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-green)', display: 'flex', alignItems: 'center', gap: 2 }}>{formatNaira(cartTotal)} - Order now <ChevronRight size={15} /></span>
             </button>
           )}
-          <form onSubmit={(e) => { e.preventDefault(); send(); }} style={{ display: 'flex', gap: 8, padding: 10, background: '#fff', borderTop: '1px solid #E2E8F0', alignItems: 'center' }}>
-            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={listening ? 'Listening... speak now' : 'Ask price, order, delivery...'} style={{ flex: 1, border: listening ? '2px solid #DC2626' : '1px solid #E2E8F0', borderRadius: 9999, padding: '10px 14px', fontSize: '0.85rem', outline: 'none' }} />
+          <form onSubmit={(e) => { e.preventDefault(); send(); }} style={{ display: 'flex', gap: 8, padding: 10, background: 'var(--surface-card)', borderTop: '1px solid var(--border-light)', alignItems: 'center' }}>
+            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder={listening ? 'Listening... speak now' : 'Ask price, order, delivery...'} style={{ flex: 1, border: listening ? '2px solid #DC2626' : '1px solid var(--border-light)', borderRadius: 9999, padding: '10px 14px', fontSize: '0.85rem', outline: 'none' }} />
             <button type="button" onClick={toggleListen} aria-label="Voice input" title="Tap and speak your order" style={{ width: 42, height: 42, borderRadius: '50%', border: 'none', background: listening ? '#DC2626' : '#0C6837', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Mic size={18} /></button>
             <button type="submit" aria-label="Send message" style={{ width: 42, height: 42, borderRadius: '50%', border: 'none', background: '#25D366', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Send size={18} /></button>
           </form>

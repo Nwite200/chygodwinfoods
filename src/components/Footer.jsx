@@ -17,7 +17,7 @@ export default function Footer({ onNavigate }) {
                 <span className="brand-subtitle">Foodstuff Global</span>
               </div>
             </div>
-            <p style={{ color: '#94A3B8', fontSize: '0.88rem', lineHeight: '1.6', maxWidth: 280, fontStyle: 'italic' }}>
+            <p style={{ color: 'var(--text-light)', fontSize: '0.88rem', lineHeight: '1.6', maxWidth: 280, fontStyle: 'italic' }}>
               Quality Food. Healthy Families. A Better Tomorrow.
             </p>
             <p style={{ color: '#CBD5E1', fontSize: '0.82rem', marginTop: 12, lineHeight: '1.5' }}>
@@ -46,17 +46,17 @@ export default function Footer({ onNavigate }) {
           <div className="footer-col">
             <h4>Official Bank Details</h4>
             <div style={{ background: '#1E293B', padding: 14, borderRadius: 10, border: '1px solid #334155', fontSize: '0.82rem' }}>
-              <div style={{ color: '#94A3B8', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Bank Name:</div>
+              <div style={{ color: 'var(--text-light)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Bank Name:</div>
               <div style={{ color: '#4ADE80', fontWeight: 900, fontSize: '0.95rem', marginBottom: 6 }}>
                 Moniepoint Microfinance Bank
               </div>
 
-              <div style={{ color: '#94A3B8', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Account Number:</div>
+              <div style={{ color: 'var(--text-light)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Account Number:</div>
               <div style={{ color: '#FEF08A', fontWeight: 900, fontSize: '1.25rem', letterSpacing: '0.05em', marginBottom: 6 }}>
                 8063654393
               </div>
 
-              <div style={{ color: '#94A3B8', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Account Name:</div>
+              <div style={{ color: 'var(--text-light)', fontSize: '0.72rem', textTransform: 'uppercase', fontWeight: 700 }}>Account Name:</div>
               <div style={{ color: '#FFFFFF', fontWeight: 700, fontSize: '0.82rem' }}>
                 Chygodwin Foodstuffs Global Concept
               </div>
@@ -106,12 +106,12 @@ export default function Footer({ onNavigate }) {
           <div>
             © 2026 Chygodwin Foodstuffs Global Concept. All rights reserved.
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#94A3B8' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--text-light)' }}>
             <span>Made with</span>
             <Heart size={14} fill="#22C55E" color="#22C55E" />
             <span>for healthy Nigerian families nationwide &amp; beyond</span>
           </div>
-          <div style={{ marginTop: 8, fontSize: '0.78rem', color: '#64748B' }}>
+          <div style={{ marginTop: 8, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
             Maintained by <strong style={{ color: '#4ADE80' }}>TK Software Solutions</strong>
             {' '}— <a href="tel:07062129563" style={{ color: '#4ADE80', fontWeight: 700, textDecoration: 'none' }}>07062129563</a>
             {' '}• <a href="https://wa.me/2347062129563" target="_blank" rel="noreferrer" style={{ color: '#4ADE80', fontWeight: 700, textDecoration: 'none' }}>WhatsApp</a>
