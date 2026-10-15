@@ -7,8 +7,8 @@
 // (Netlify: Site settings → Environment variables).
 // Same params as netlify/functions/admin-login.mjs — do not change one side only.
 
-const crypto = require('crypto');
-const readline = require('readline');
+import { randomBytes, scrypt } from 'node:crypto';
+import * as readline from 'node:readline';
 
 const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
@@ -18,8 +18,8 @@ rl.question('Type your admin password: ', (password) => {
     rl.close();
     return;
   }
-  const salt = crypto.randomBytes(16);
-  crypto.scrypt(password, salt, 64, { N: 16384, r: 8, p: 1 }, (err, hash) => {
+  const salt = randomBytes(16);
+  scrypt(password, salt, 64, { N: 16384, r: 8, p: 1 }, (err, hash) => {
     if (err) {
       console.error('Hash error:', err.message);
       rl.close();
