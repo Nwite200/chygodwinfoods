@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="145" fill="#FEF3C7" opacity="0.45"/>
+  
+    <path d="M 130 130 Q 160 110 200 130 Q 240 110 270 130 L 260 230 Q 200 260 140 230 Z" fill="#FFFBEB" stroke="#B45309" stroke-width="3"/>
+    <path d="M 150 150 Q 180 160 210 150" stroke="#D97706" stroke-width="3" fill="none"/>
+    <path d="M 160 180 Q 200 190 240 180" stroke="#D97706" stroke-width="3" fill="none"/>
+    <path d="M 170 210 Q 195 215 220 210" stroke="#D97706" stroke-width="3" fill="none"/>
+  
+  <!-- Label card -->
+  <rect x="110" y="275" width="180" height="70" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.06))"/>
+  <rect x="120" y="283" width="160" height="18" rx="4" fill="#0C6837"/>
+  <text x="200" y="296" font-family="system-ui, sans-serif" font-weight="900" font-size="10" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">EASTERN DELICACY</text>
+  <text x="200" y="322" font-family="system-ui, sans-serif" font-weight="900" font-size="15" fill="#062E1D" text-anchor="middle">ABACHA CASSAVA</text>
+  <text x="200" y="337" font-family="system-ui, sans-serif" font-weight="700" font-size="10" fill="#64748B" text-anchor="middle">Shredded Sun-Dried Salad</text>
+</svg>

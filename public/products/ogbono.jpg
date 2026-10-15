@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="145" fill="#FEF3C7" opacity="0.45"/>
+  
+    <circle cx="165" cy="170" r="32" fill="#78350F" stroke="#451A03" stroke-width="3"/>
+    <circle cx="225" cy="165" r="34" fill="#92400E" stroke="#451A03" stroke-width="3"/>
+    <circle cx="195" cy="215" r="35" fill="#B45309" stroke="#451A03" stroke-width="3"/>
+    <text x="200" y="175" font-family="system-ui, sans-serif" font-weight="900" font-size="12" fill="#FDE68A" text-anchor="middle">OGBONO</text>
+  
+  <!-- Label card -->
+  <rect x="110" y="275" width="180" height="70" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.06))"/>
+  <rect x="120" y="283" width="160" height="18" rx="4" fill="#0C6837"/>
+  <text x="200" y="296" font-family="system-ui, sans-serif" font-weight="900" font-size="10" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">DRAW SOUP ESSENTIAL</text>
+  <text x="200" y="322" font-family="system-ui, sans-serif" font-weight="900" font-size="15" fill="#062E1D" text-anchor="middle">ADOR OGBONNO</text>
+  <text x="200" y="337" font-family="system-ui, sans-serif" font-weight="700" font-size="10" fill="#64748B" text-anchor="middle">High-Draw Premium Seeds</text>
+</svg>

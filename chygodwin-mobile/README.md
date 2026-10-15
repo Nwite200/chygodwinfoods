@@ -29,9 +29,40 @@ The PWA includes a web manifest, app icons, and standalone display metadata. It 
 1. Set `EXPO_PUBLIC_SUPABASE_URL` in `.env` to the project's HTTPS URL.
 2. Set `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` to the project's publishable key. Never put a Supabase secret key in the mobile app.
 3. Run [`supabase/cart_schema.sql`](supabase/cart_schema.sql) in the Supabase SQL editor. It creates the user-scoped `cart_items` table, row-level security policies, atomic add-item function, and Realtime publication membership.
-4. Enable the needed sign-in providers in Supabase Auth.
+4. Enable email/password sign-in in Supabase Auth.
 
-The mobile cart syncs through `public.cart_items` for the signed-in user. The existing web cart currently uses local React state, so web/mobile cart sharing requires a separate web integration; this project intentionally does not modify the web app.
+The mobile app and website use the same `public.cart_items` rows for signed-in users. Sign in to both with the same Supabase account to see cart changes sync across devices. The website also supports creating and signing in to an email/password account from its Account page.
+
+The app sends checkout to the existing website, where the shared cart is loaded before delivery details are entered. The website's current checkout is a demonstration flow: it does not charge cards or persist orders to a production order-management system.
+
+## Build an Android APK
+
+1. Sign in to Expo and link this app to an EAS project:
+
+```sh
+npx eas-cli login
+npx eas-cli init
+```
+
+2. Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` as EAS environment variables for the `preview` build environment.
+3. Build the APK:
+
+```sh
+npx eas-cli build --platform android --profile preview
+```
+
+When EAS finishes, download the APK from the build page and upload it to a file-sharing service that allows reviewers to download it.
+
+## Record the submission demo
+
+Record one continuous take using a test account and avoid showing passwords or private account information:
+
+1. Sign in to the website and add a product to the cart.
+2. Open the installed Android app, sign in to the same account, and show the shared item.
+3. Change the quantity in the app and show the updated cart on the website.
+4. Open checkout from the app and continue to the website to show the shared cart and existing checkout/confirmation flow.
+
+The website's checkout and order history are demonstrations only; do not present them as real payment processing or persistent order tracking.
 
 ## Install on iPhone
 

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="145" fill="#FEE2E2" opacity="0.45"/>
+  
+    <path d="M 130 110 Q 200 90 270 120 Q 285 200 260 250 Q 190 270 130 240 Z" fill="#7F1D1D" stroke="#991B1B" stroke-width="4"/>
+    <path d="M 145 130 Q 200 120 250 140 Q 255 190 240 230 Q 185 245 145 220 Z" fill="#991B1B" stroke="#B91C1C" stroke-width="2"/>
+    <circle cx="170" cy="160" r="4" fill="#F87171"/>
+    <circle cx="210" cy="180" r="4" fill="#F87171"/>
+    <circle cx="180" cy="210" r="4" fill="#F87171"/>
+    <circle cx="230" cy="150" r="4" fill="#F87171"/>
+  
+  <!-- Label card -->
+  <rect x="110" y="275" width="180" height="70" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.06))"/>
+  <rect x="120" y="283" width="160" height="18" rx="4" fill="#0C6837"/>
+  <text x="200" y="296" font-family="system-ui, sans-serif" font-weight="900" font-size="10" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">SAVORY DRIED MEAT</text>
+  <text x="200" y="322" font-family="system-ui, sans-serif" font-weight="900" font-size="15" fill="#062E1D" text-anchor="middle">SPICY KILISHI</text>
+  <text x="200" y="337" font-family="system-ui, sans-serif" font-weight="700" font-size="10" fill="#64748B" text-anchor="middle">Authentic Northern Recipe</text>
+</svg>

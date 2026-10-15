@@ -20,12 +20,18 @@ export default function AccountView({
   authConfigured,
   authError,
   onGoogleSignIn,
+  onEmailSignIn,
+  onEmailRegister,
   onSignOut,
   onNavigate
 }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [trackingSearch, setTrackingSearch] = useState('');
   const [trackingResult, setTrackingResult] = useState(null);
+  const [authMode, setAuthMode] = useState('sign-in');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authSubmitting, setAuthSubmitting] = useState(false);
 
   const handleTrack = () => {
     const found = orders.find(
@@ -40,6 +46,22 @@ export default function AccountView({
     || user?.user_metadata?.name
     || user?.email?.split('@')[0]
     || 'Your account';
+
+  const handleEmailAuth = async (event) => {
+    event.preventDefault();
+    if (!email.trim() || !password) return;
+
+    setAuthSubmitting(true);
+    try {
+      if (authMode === 'sign-in') {
+        await onEmailSignIn(email, password);
+      } else {
+        await onEmailRegister(email, password);
+      }
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
 
   if (authLoading) {
     return (
@@ -59,7 +81,7 @@ export default function AccountView({
               Sign in to your account
             </h1>
             <p style={{ color: '#64748B', marginBottom: 24 }}>
-              Continue with Google to view your account and orders.
+              Sign in with the same account on the website and mobile app to share your cart.
             </p>
             {authError && (
               <p role="alert" style={{ color: '#B91C1C', marginBottom: 16 }}>
@@ -79,6 +101,49 @@ export default function AccountView({
             >
               <LogIn size={18} />
               Continue with Google
+            </button>
+            <div style={{ margin: '24px 0 16px', color: '#64748B', fontSize: '0.85rem' }}>or use email</div>
+            <form onSubmit={handleEmailAuth} style={{ textAlign: 'left' }}>
+              <label htmlFor="account-email" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: 6 }}>
+                Email
+              </label>
+              <input
+                id="account-email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                style={{ boxSizing: 'border-box', width: '100%', padding: 12, border: '1px solid #CBD5E1', borderRadius: 10, marginBottom: 14 }}
+              />
+              <label htmlFor="account-password" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: 6 }}>
+                Password
+              </label>
+              <input
+                id="account-password"
+                type="password"
+                autoComplete={authMode === 'sign-in' ? 'current-password' : 'new-password'}
+                minLength={6}
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                style={{ boxSizing: 'border-box', width: '100%', padding: 12, border: '1px solid #CBD5E1', borderRadius: 10 }}
+              />
+              <button
+                type="submit"
+                className="btn-primary-pill"
+                style={{ width: '100%', justifyContent: 'center', marginTop: 16 }}
+                disabled={!authConfigured || authSubmitting}
+              >
+                {authSubmitting ? 'Please wait...' : authMode === 'sign-in' ? 'Sign in with email' : 'Create account'}
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={() => setAuthMode((mode) => mode === 'sign-in' ? 'register' : 'sign-in')}
+              style={{ marginTop: 14, color: '#0C6837', fontWeight: 700 }}
+            >
+              {authMode === 'sign-in' ? 'New here? Create an account' : 'Already registered? Sign in'}
             </button>
           </div>
         </div>

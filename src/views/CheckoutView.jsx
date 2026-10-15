@@ -7,9 +7,11 @@ import {
   ShieldCheck,
   Building,
   DollarSign,
-  PackageCheck
+  PackageCheck,
+  FileDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { downloadInvoicePdf } from '../utils/invoice';
 
 export default function CheckoutView({
   cartItems,
@@ -54,7 +56,14 @@ export default function CheckoutView({
         date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         customer: formData.fullName,
         email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        deliveryMethod: formData.deliveryMethod,
         items: cartItems,
+        subtotal: subtotal,
+        deliveryCost: subtotal > 0 ? deliveryCost : 0,
         total: total,
         status: 'Processing',
         paymentMethod: formData.paymentMethod === 'card' ? 'Card (Mastercard)' : formData.paymentMethod === 'transfer' ? 'Bank Transfer' : 'Pay on Delivery',
@@ -63,6 +72,11 @@ export default function CheckoutView({
 
       setCompletedOrder(orderObj);
       onOrderPlaced(orderObj);
+      try {
+        downloadInvoicePdf({ order: orderObj, customer: formData, subtotal, deliveryCost: subtotal > 0 ? deliveryCost : 0, total });
+      } catch (err) {
+        console.warn('Invoice auto-download failed:', err);
+      }
       onClearCart();
       setStep(3);
 
@@ -145,9 +159,37 @@ export default function CheckoutView({
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 className="btn-primary-pill"
+                onClick={() => {
+                  try {
+                    downloadInvoicePdf({
+                      order: completedOrder,
+                      customer: {
+                        fullName: completedOrder.customer,
+                        email: completedOrder.email,
+                        phone: completedOrder.phone,
+                        address: completedOrder.address,
+                        city: completedOrder.city,
+                        state: completedOrder.state,
+                        deliveryMethod: completedOrder.deliveryMethod,
+                        paymentMethod: completedOrder.paymentMethod
+                      },
+                      subtotal: completedOrder.subtotal,
+                      deliveryCost: completedOrder.deliveryCost,
+                      total: completedOrder.total
+                    });
+                  } catch (err) {
+                    console.warn('Invoice download failed:', err);
+                  }
+                }}
+              >
+                <FileDown size={17} /> Download Invoice (PDF)
+              </button>
+              <button
+                className="btn-secondary-pill"
+                style={{ color: '#062E1D', borderColor: '#CBD5E1' }}
                 onClick={() => onNavigate('account')}
               >
                 Track in Account Dashboard
@@ -272,7 +314,11 @@ export default function CheckoutView({
 
             {/* Delivery Method */}
             <div className="form-card">
-              <h2 className="form-title">Delivery Method</h2>
+              <h2 className="form-title">Delivery &amp; Waybill Method</h2>
+              <div style={{ background: '#F8FAFC', padding: 12, borderRadius: 8, border: '1px solid #E2E8F0', marginBottom: 14, fontSize: '0.8rem', color: '#475569' }}>
+                📍 Dispatched from <strong>Nkwelle Light of God estate</strong>. We waybill and deliver Nationwide and beyond.
+              </div>
+
               <div
                 className={`radio-option-card ${formData.deliveryMethod === 'standard' ? 'selected' : ''}`}
                 onClick={() => setFormData({ ...formData, deliveryMethod: 'standard' })}
@@ -280,8 +326,8 @@ export default function CheckoutView({
                 <div className="radio-left">
                   <Truck size={20} color="#0C6837" />
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Standard Delivery (2-3 Days)</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Doorstep delivery via GIG Logistics / Red Star</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Nationwide Waybill &amp; Delivery (2-3 Days)</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Dispatched via trusted interstate bus/haulage park or direct courier</div>
                   </div>
                 </div>
                 <strong style={{ color: '#062E1D' }}>₦1,500</strong>
@@ -294,8 +340,8 @@ export default function CheckoutView({
                 <div className="radio-left">
                   <Truck size={20} color="#22C55E" />
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Express Delivery (Same Day)</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Priority dispatcher for urgent orders</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Express Priority Dispatch (Same Day / 24 Hours)</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>First-morning bus waybill for urgent foodstuff requirements</div>
                   </div>
                 </div>
                 <strong style={{ color: '#062E1D' }}>₦3,500</strong>
@@ -305,6 +351,58 @@ export default function CheckoutView({
             {/* Step 2: Payment Method */}
             <div className="form-card">
               <h2 className="form-title">Payment Method</h2>
+
+              <div
+                className={`radio-option-card ${formData.paymentMethod === 'transfer' ? 'selected' : ''}`}
+                onClick={() => setFormData({ ...formData, paymentMethod: 'transfer' })}
+              >
+                <div className="radio-left">
+                  <Building size={20} color="#0C6837" />
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Direct Bank Transfer (Moniepoint)</div>
+                    <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: 600 }}>Recommended • Zero transaction delays</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '0.75rem', background: '#DCFCE7', color: '#166534', padding: '3px 8px', borderRadius: 4, fontWeight: 800 }}>Instant</span>
+              </div>
+
+              {formData.paymentMethod === 'transfer' && (
+                <div style={{ background: '#F0FDF4', padding: 18, borderRadius: 12, marginBottom: 14, border: '2px solid #86EFAC', fontSize: '0.88rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: '#166534' }}>
+                      Official Payment Account
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText('8063654393');
+                        alert('Account Number 8063654393 copied to clipboard!');
+                      }}
+                      style={{
+                        background: '#0C6837',
+                        color: '#FFF',
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Copy Account No
+                    </button>
+                  </div>
+
+                  <p style={{ margin: '4px 0' }}><strong>Bank :</strong> Moniepoint</p>
+                  <p style={{ margin: '4px 0' }}><strong>Acc No:</strong> <span style={{ fontSize: '1.2rem', fontWeight: 900, color: '#0C6837', letterSpacing: '0.04em' }}>8063654393</span></p>
+                  <p style={{ margin: '4px 0' }}><strong>Name:</strong> Chygodwin Foodstuffs Global Concept</p>
+
+                  <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.7)', padding: 10, borderRadius: 8, fontSize: '0.78rem', color: '#166534', lineHeight: '1.4' }}>
+                    💡 <em>After making your transfer, please send proof of payment on WhatsApp to <strong>08063654393</strong> for immediate package dispatch.</em>
+                  </div>
+                </div>
+              )}
+
               <div
                 className={`radio-option-card ${formData.paymentMethod === 'card' ? 'selected' : ''}`}
                 onClick={() => setFormData({ ...formData, paymentMethod: 'card' })}
@@ -313,7 +411,7 @@ export default function CheckoutView({
                   <CreditCard size={20} color="#0C6837" />
                   <div>
                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Card (Visa, Mastercard, Verve)</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Secured by Paystack / Flutterwave</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Online debit card payment</div>
                   </div>
                 </div>
                 <ShieldCheck size={18} color="#16A34A" />
@@ -354,35 +452,14 @@ export default function CheckoutView({
               )}
 
               <div
-                className={`radio-option-card ${formData.paymentMethod === 'transfer' ? 'selected' : ''}`}
-                onClick={() => setFormData({ ...formData, paymentMethod: 'transfer' })}
-              >
-                <div className="radio-left">
-                  <Building size={20} color="#0C6837" />
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Direct Bank Transfer</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>GTBank / Zenith Bank instant transfer</div>
-                  </div>
-                </div>
-              </div>
-
-              {formData.paymentMethod === 'transfer' && (
-                <div style={{ background: '#F0FDF4', padding: 14, borderRadius: 10, marginBottom: 14, border: '1px solid #BBF7D0', fontSize: '0.85rem' }}>
-                  <p><strong>Bank Name:</strong> Guaranty Trust Bank (GTBank)</p>
-                  <p><strong>Account Name:</strong> ChyGodwin Foodstuff Global Ltd</p>
-                  <p><strong>Account Number:</strong> 0123456789</p>
-                </div>
-              )}
-
-              <div
                 className={`radio-option-card ${formData.paymentMethod === 'cod' ? 'selected' : ''}`}
                 onClick={() => setFormData({ ...formData, paymentMethod: 'cod' })}
               >
                 <div className="radio-left">
                   <DollarSign size={20} color="#0C6837" />
                   <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Pay on Delivery</div>
-                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Cash or POS on doorstep in eligible cities</div>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Pay on Delivery / Park Pickup</div>
+                    <div style={{ fontSize: '0.78rem', color: '#64748B' }}>Cash on doorstep or waybill park verification</div>
                   </div>
                 </div>
               </div>

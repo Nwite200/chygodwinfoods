@@ -13,6 +13,7 @@ import {
 import { PRODUCTS } from '../data/products';
 
 export default function ProductDetailView({
+  products = PRODUCTS,
   product = PRODUCTS[0],
   onAddToCart,
   onToggleWishlist,
@@ -20,11 +21,18 @@ export default function ProductDetailView({
   onSelectProduct,
   onNavigate
 }) {
-  const [activeThumb, setActiveThumb] = useState(product.image);
+  const [activeThumb, setActiveThumb] = useState(product?.image);
   const [quantity, setQuantity] = useState(1);
   const [openAccordion, setOpenAccordion] = useState('details');
 
-  const relatedProducts = PRODUCTS.filter(
+  React.useEffect(() => {
+    if (product) {
+      setActiveThumb(product.image);
+      setQuantity(1);
+    }
+  }, [product]);
+
+  const relatedProducts = (products || PRODUCTS).filter(
     (p) => p.id !== product.id && (p.category === product.category || p.brand === product.brand)
   ).slice(0, 4);
 
@@ -66,9 +74,12 @@ export default function ProductDetailView({
           <div>
             <div className="gallery-main-wrap">
               <img
-                src={activeThumb || product.image}
-                alt={product.name}
+                src={activeThumb || product?.image}
+                alt={product?.name}
                 className="gallery-main-img"
+                onError={(e) => {
+                  e.target.src = '/hero.jpg';
+                }}
               />
               <button
                 className={`product-wishlist-btn ${isWishlisted ? 'active' : ''}`}
@@ -88,7 +99,13 @@ export default function ProductDetailView({
                   className={`gallery-thumb-item ${activeThumb === thumb ? 'active' : ''}`}
                   onClick={() => setActiveThumb(thumb)}
                 >
-                  <img src={thumb} alt={`View ${idx + 1}`} />
+                  <img
+                    src={thumb}
+                    alt={`View ${idx + 1}`}
+                    onError={(e) => {
+                      e.target.src = '/hero.jpg';
+                    }}
+                  />
                 </div>
               ))}
             </div>

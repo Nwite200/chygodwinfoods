@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { Product, getImageUri } from './products';
 import { supabase, isSupabaseConfigured } from './supabase';
 
@@ -14,8 +15,8 @@ export type CartItem = {
 };
 
 const CART_TABLE = 'cart_items';
-
 let realtimeChannelSequence = 0;
+
 const normalizeCartRow = (row: Record<string, unknown>): CartItem => ({
   id: String(row.product_id),
   product_id: String(row.product_id),
@@ -70,8 +71,9 @@ const createRealtimeSubscriptions = (userId: string, onChange: () => void) => {
 
 export function useCart() {
   const [items, setItems] = useState<CartItem[]>([]);
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const userId = session?.user.id;
 
   const refreshItems = useCallback(async (userId: string) => {
     try {
@@ -98,6 +100,10 @@ export function useCart() {
       const { data } = await supabase.auth.getSession();
       if (mounted) {
         setSession(data.session);
+        if (!data.session) {
+          setItems([]);
+          setSyncError('Sign in to load your shared cart.');
+        }
       }
     };
 
@@ -105,6 +111,10 @@ export function useCart() {
     const { data: authSubscription } = supabase
       ? supabase.auth.onAuthStateChange((_event, nextSession) => {
           setSession(nextSession);
+          if (!nextSession) {
+            setItems([]);
+            setSyncError('Sign in to load your shared cart.');
+          }
         })
       : { data: { subscription: { unsubscribe: () => undefined } } };
 
@@ -115,11 +125,7 @@ export function useCart() {
   }, []);
 
   useEffect(() => {
-    if (!session?.user?.id) {
-      setItems([]);
-      if (supabase) {
-        setSyncError('Sign in to load your shared cart.');
-      }
+    if (!userId) {
       return undefined;
     }
 
@@ -127,7 +133,7 @@ export function useCart() {
 
     const syncFromSupabase = async () => {
       try {
-        const nextItems = await fetchCartForUser(session.user.id);
+        const nextItems = await fetchCartForUser(userId);
         if (isMounted) {
           setItems(nextItems);
           setSyncError(null);
@@ -141,7 +147,7 @@ export function useCart() {
 
     syncFromSupabase();
 
-    const cleanup = createRealtimeSubscriptions(session.user.id, () => {
+    const cleanup = createRealtimeSubscriptions(userId, () => {
       syncFromSupabase();
     });
 
@@ -149,7 +155,7 @@ export function useCart() {
       isMounted = false;
       cleanup();
     };
-  }, [session?.user?.id]);
+  }, [userId]);
 
   const addItem = useCallback(
     async (product: Product) => {
@@ -158,50 +164,29 @@ export function useCart() {
         return items;
       }
 
-      if (!session?.user?.id) {
+      if (!userId) {
         setSyncError('Sign in before adding items to the shared cart.');
         return items;
       }
 
-      const nextItems = [...items];
-      const existingIndex = nextItems.findIndex((item) => item.product_id === product.id);
-
-      if (existingIndex >= 0) {
-        nextItems[existingIndex] = {
-          ...nextItems[existingIndex],
-          quantity: nextItems[existingIndex].quantity + 1,
-          price: product.price,
-          image: product.image,
-          name: product.name,
-        };
-      } else {
-        nextItems.push({
-          id: product.id,
-          product_id: product.id,
-          name: product.name,
-          image: product.image,
-          price: product.price,
-          quantity: 1,
-          brand: product.brand,
-          user_id: session?.user?.id,
+      try {
+        const { error } = await supabase.rpc('add_cart_item', {
+          p_product_id: product.id,
+          p_product_name: product.name,
+          p_product_image: product.image,
+          p_price: product.price,
         });
-      }
-
-      const { error } = await supabase.rpc('add_cart_item', {
-        p_product_id: product.id,
-        p_product_name: product.name,
-        p_product_image: product.image,
-        p_price: product.price,
-      });
-
-      if (error) {
-        setSyncError(error.message);
+        if (error) {
+          setSyncError(error.message);
+          return items;
+        }
+        return (await refreshItems(userId)) ?? items;
+      } catch (error) {
+        setSyncError(error instanceof Error ? error.message : 'Unable to add the item to your shared cart.');
         return items;
       }
-
-      return (await refreshItems(session.user.id)) ?? items;
     },
-    [items, refreshItems, session?.user?.id],
+    [items, refreshItems, userId],
   );
 
   const updateQuantity = useCallback(
@@ -211,34 +196,31 @@ export function useCart() {
         return items;
       }
 
-      if (!session?.user?.id) {
+      if (!userId) {
         setSyncError('Sign in before changing the shared cart.');
         return items;
       }
 
-      const nextItems = items
-        .map((item) =>
-          item.product_id === productId ? { ...item, quantity: Math.max(quantity, 0) } : item,
-        )
-        .filter((item) => item.quantity > 0);
-
-      const query = quantity <= 0
-        ? supabase.from(CART_TABLE).delete().eq('product_id', productId).eq('user_id', session.user.id)
-        : supabase
-            .from(CART_TABLE)
-            .update({ quantity, updated_at: new Date().toISOString() })
-            .eq('product_id', productId)
-            .eq('user_id', session.user.id);
-      const { error } = await query;
-
-      if (error) {
-        setSyncError(error.message);
+      try {
+        const query = quantity <= 0
+          ? supabase.from(CART_TABLE).delete().eq('product_id', productId).eq('user_id', userId)
+          : supabase
+              .from(CART_TABLE)
+              .update({ quantity, updated_at: new Date().toISOString() })
+              .eq('product_id', productId)
+              .eq('user_id', userId);
+        const { error } = await query;
+        if (error) {
+          setSyncError(error.message);
+          return items;
+        }
+        return (await refreshItems(userId)) ?? items;
+      } catch (error) {
+        setSyncError(error instanceof Error ? error.message : 'Unable to update your shared cart.');
         return items;
       }
-
-      return (await refreshItems(session.user.id)) ?? items;
     },
-    [items, refreshItems, session?.user?.id],
+    [items, refreshItems, userId],
   );
 
   const removeItem = useCallback(
@@ -248,27 +230,28 @@ export function useCart() {
         return items;
       }
 
-      if (!session?.user?.id) {
+      if (!userId) {
         setSyncError('Sign in before changing the shared cart.');
         return items;
       }
 
-      const nextItems = items.filter((item) => item.product_id !== productId);
-
-      const { error } = await supabase
-        .from(CART_TABLE)
-        .delete()
-        .eq('product_id', productId)
-        .eq('user_id', session.user.id);
-
-      if (error) {
-        setSyncError(error.message);
+      try {
+        const { error } = await supabase
+          .from(CART_TABLE)
+          .delete()
+          .eq('product_id', productId)
+          .eq('user_id', userId);
+        if (error) {
+          setSyncError(error.message);
+          return items;
+        }
+        return (await refreshItems(userId)) ?? items;
+      } catch (error) {
+        setSyncError(error instanceof Error ? error.message : 'Unable to remove the item from your shared cart.');
         return items;
       }
-
-      return (await refreshItems(session.user.id)) ?? items;
     },
-    [items, refreshItems, session?.user?.id],
+    [items, refreshItems, userId],
   );
 
   const clearCart = useCallback(async () => {
@@ -277,25 +260,29 @@ export function useCart() {
       return;
     }
 
-    if (!session?.user?.id) {
+    if (!userId) {
       setSyncError('Sign in before changing the shared cart.');
       return;
     }
 
-    const { error } = await supabase.from(CART_TABLE).delete().eq('user_id', session.user.id);
-
-    if (error) {
-      setSyncError(error.message);
+    try {
+      const { error } = await supabase.from(CART_TABLE).delete().eq('user_id', userId);
+      if (error) {
+        setSyncError(error.message);
+        return;
+      }
+      await refreshItems(userId);
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : 'Unable to clear your shared cart.');
       return;
     }
-
-    await refreshItems(session.user.id);
-  }, [refreshItems, session?.user?.id]);
+  }, [refreshItems, userId]);
 
   const subtotal = useMemo(() => items.reduce((total, item) => total + item.price * item.quantity, 0), [items]);
 
   return {
     items,
+    session,
     subtotal,
     addItem,
     updateQuantity,

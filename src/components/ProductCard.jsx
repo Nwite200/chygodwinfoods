@@ -55,6 +55,9 @@ export default function ProductCard({
           alt={product.name}
           className="product-thumb"
           loading="lazy"
+          onError={(e) => {
+            e.target.src = '/hero.jpg';
+          }}
         />
       </div>
 

@@ -66,8 +66,15 @@ export default function CartScreen() {
           <Text style={styles.summaryValue}>₦{total.toLocaleString()}</Text>
         </View>
 
-        <Pressable style={styles.checkoutButton} onPress={() => router.push('/products')}>
-          <Text style={styles.checkoutText}>Continue shopping</Text>
+        <Pressable
+          style={[styles.checkoutButton, items.length === 0 && styles.disabledButton]}
+          onPress={() => router.push('/checkout')}
+          disabled={items.length === 0}
+        >
+          <Text style={styles.checkoutText}>Continue to checkout</Text>
+        </Pressable>
+        <Pressable style={styles.continueButton} onPress={() => router.push('/products')}>
+          <Text style={styles.continueText}>Continue shopping</Text>
         </Pressable>
       </View>
     </View>
@@ -230,5 +237,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '800',
     fontSize: 15,
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  continueButton: {
+    alignItems: 'center',
+    paddingVertical: 14,
+  },
+  continueText: {
+    color: '#0b7c4e',
+    fontWeight: '700',
   },
 });

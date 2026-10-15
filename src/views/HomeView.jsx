@@ -8,6 +8,7 @@ import DualPromoBanners from '../components/DualPromoBanners';
 import { PRODUCTS } from '../data/products';
 
 export default function HomeView({
+  products = PRODUCTS,
   onAddToCart,
   onToggleWishlist,
   wishlist,
@@ -15,8 +16,8 @@ export default function HomeView({
   onSelectCategory,
   onNavigate
 }) {
-  const featuredProducts = PRODUCTS.slice(0, 6);
-  const bestSellers = PRODUCTS.slice(6, 12);
+  const featuredProducts = products.filter((p) => p.featured).slice(0, 8);
+  const bestSellers = products.slice(8, 16);
 
   return (
     <div>
@@ -48,12 +49,12 @@ export default function HomeView({
           <div className="section-header-flex">
             <div>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#0C6837', letterSpacing: '0.06em' }}>
-                Handpicked Favorites
+                Handpicked Favorites from Nkwelle Light of God Estate
               </span>
-              <h2 className="section-title">Featured Products</h2>
+              <h2 className="section-title">Featured Nigerian Foodstuffs</h2>
             </div>
             <button className="section-link" onClick={() => onNavigate('shop')}>
-              View All Products <ArrowRight size={16} />
+              View All {products.length} Products <ArrowRight size={16} />
             </button>
           </div>
 
@@ -86,12 +87,12 @@ export default function HomeView({
           <div className="section-header-flex">
             <div>
               <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#0C6837', letterSpacing: '0.06em' }}>
-                Daily Household Staples
+                Daily Kitchen Staples
               </span>
               <h2 className="section-title">Popular in Nigerian Kitchens</h2>
             </div>
             <button className="section-link" onClick={() => onNavigate('shop')}>
-              Explore Catalog <ArrowRight size={16} />
+              Explore Full Catalog <ArrowRight size={16} />
             </button>
           </div>
 

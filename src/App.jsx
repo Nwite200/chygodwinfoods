@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomeView from './views/HomeView';
@@ -9,33 +9,77 @@ import CheckoutView from './views/CheckoutView';
 import AccountView from './views/AccountView';
 import AdminView from './views/AdminView';
 import MobilePhoneMockup from './views/MobilePhoneMockup';
+import WhatsAppChat from './components/WhatsAppChat';
 import { PRODUCTS, INITIAL_ORDERS } from './data/products';
 import { Check } from 'lucide-react';
 import { isSupabaseConfigured, supabase } from './supabase';
 
+const getIsoTimestamp = () => new Date().toISOString();
+
 export default function App() {
   const [activeView, setActiveView] = useState('home');
-  const [selectedProduct, setSelectedProduct] = useState(PRODUCTS[0]); // Honeywell Semovita 5kg
+  const [products, setProducts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('chygodwin_products');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (err) {
+      console.error('Failed to load saved products:', err);
+    }
+    return PRODUCTS;
+  });
+
+  // Persist products to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('chygodwin_products', JSON.stringify(products));
+    } catch (err) {
+      // localStorage quota exceeded — strip base64 images and retry
+      console.warn('localStorage quota exceeded, compacting images…', err);
+      try {
+        const compact = products.map((p) => {
+          // Keep path-based images, strip large data: URLs
+          const img = typeof p.image === 'string' && p.image.startsWith('data:') && p.image.length > 80000
+            ? '/products/combo.jpg'
+            : p.image;
+          return { ...p, image: img, thumbnails: [img] };
+        });
+        localStorage.setItem('chygodwin_products', JSON.stringify(compact));
+      } catch (e2) {
+        console.error('Failed to save products even after compaction:', e2);
+      }
+    }
+  }, [products]);
+
+  // Cross-tab sync: listen for localStorage changes in other tabs/windows
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'chygodwin_products' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setProducts(parsed);
+          }
+        } catch (err) {
+          console.error('Failed to sync products from other tab:', err);
+        }
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  const [selectedProduct, setSelectedProduct] = useState(() => products[0] || PRODUCTS[0]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Cart initialized with the 3 items shown in Screen 4 of the visual reference!
-  const [cartItems, setCartItems] = useState([
-    {
-      ...PRODUCTS[0], // Honeywell Semovita 5kg
-      quantity: 1
-    },
-    {
-      ...PRODUCTS[2], // Indomie Noodles 70g
-      quantity: 1
-    },
-    {
-      ...PRODUCTS[6], // Tropical Sun Palm Oil 1L
-      quantity: 1
-    }
-  ]);
+  const [cartItems, setCartItems] = useState([]);
+  const guestCartRef = useRef(cartItems);
 
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [sharedCartReadyFor, setSharedCartReadyFor] = useState(null);
   const [promoCode, setPromoCode] = useState('');
   const [discountAmount, setDiscountAmount] = useState(0);
   const [wishlist, setWishlist] = useState(['golden-penny-gari-10kg', 'dried-beans-1kg']);
@@ -44,6 +88,31 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(isSupabaseConfigured);
   const [authError, setAuthError] = useState('');
+  const authenticatedUserIdRef = useRef(null);
+
+  const showToast = useCallback((message) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) {
+      guestCartRef.current = cartItems;
+    }
+  }, [cartItems, user?.id]);
+
+  const updateAuthSession = useCallback((session) => {
+    const nextUser = session?.user ?? null;
+    const nextUserId = nextUser?.id ?? null;
+    if (authenticatedUserIdRef.current !== nextUserId) {
+      authenticatedUserIdRef.current = nextUserId;
+      setSharedCartReadyFor(null);
+      if (!nextUserId) {
+        setCartItems([]);
+      }
+    }
+    setUser(nextUser);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return undefined;
@@ -51,7 +120,7 @@ export default function App() {
     let isMounted = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
-      setUser(session?.user ?? null);
+      updateAuthSession(session);
       setAuthLoading(false);
     });
 
@@ -59,7 +128,7 @@ export default function App() {
       .then(({ data: { session }, error }) => {
         if (!isMounted) return;
         if (error) setAuthError(error.message);
-        setUser(session?.user ?? null);
+        updateAuthSession(session);
         setAuthLoading(false);
       })
       .catch(() => {
@@ -72,14 +141,131 @@ export default function App() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [updateAuthSession]);
 
-  const showToast = (message) => {
-    setToast(message);
-    setTimeout(() => setToast(null), 3000);
-  };
+  useEffect(() => {
+    if (!supabase || !user?.id) {
+      return undefined;
+    }
 
-  const handleAddToCart = (product) => {
+    const userId = user.id;
+    let isMounted = true;
+
+    const loadSharedCart = async () => {
+      const { data, error } = await supabase
+        .from('cart_items')
+        .select('product_id, product_name, product_image, price, quantity')
+        .eq('user_id', userId)
+        .order('updated_at', { ascending: false });
+
+      if (!isMounted) return;
+      if (error) {
+        showToast(`Unable to load your shared cart: ${error.message}`);
+        return;
+      }
+
+      const rows = [...(data ?? [])];
+      const rowsByProductId = new Map(rows.map((row) => [row.product_id, row]));
+      const guestItems = guestCartRef.current;
+      if (guestItems.length > 0) {
+        const rowsToSave = guestItems.map((item) => {
+          const existing = rowsByProductId.get(item.id);
+          const quantity = Number(existing?.quantity ?? 0) + item.quantity;
+          return {
+            user_id: userId,
+            product_id: item.id,
+            product_name: item.name,
+            product_image: item.image,
+            price: item.price,
+            quantity
+          };
+        });
+        guestCartRef.current = [];
+        const { error: mergeError } = await supabase.from('cart_items').upsert(rowsToSave);
+        if (!isMounted) return;
+        if (mergeError) {
+          guestCartRef.current = guestItems;
+          showToast(`Unable to merge your cart: ${mergeError.message}`);
+          return;
+        }
+        for (const row of rowsToSave) {
+          rowsByProductId.set(row.product_id, row);
+        }
+      }
+      const mergedRows = Array.from(rowsByProductId.values());
+      setCartItems(mergedRows.map((row) => {
+        const product = products.find((item) => item.id === row.product_id) || PRODUCTS.find((item) => item.id === row.product_id);
+        return {
+          ...(product ?? {}),
+          id: row.product_id,
+          name: row.product_name,
+          image: row.product_image,
+          price: Number(row.price),
+          quantity: Number(row.quantity)
+        };
+      }));
+      setSharedCartReadyFor(userId);
+    };
+
+    const reportLoadError = (error) => {
+      if (isMounted) {
+        showToast(`Unable to load your shared cart: ${error instanceof Error ? error.message : 'Please try again.'}`);
+      }
+    };
+
+    void loadSharedCart().catch(reportLoadError);
+    const channel = supabase
+      .channel(`web-cart-sync-${userId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cart_items', filter: `user_id=eq.${userId}` },
+        () => { void loadSharedCart().catch(reportLoadError); }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      void channel.unsubscribe();
+    };
+  }, [showToast, user?.id]);
+
+  const handleAddToCart = async (product) => {
+    if (user && supabase) {
+      if (sharedCartReadyFor !== user.id) {
+        showToast('Your shared cart is still loading. Please try again.');
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase.rpc('add_cart_item', {
+          p_product_id: product.id,
+          p_product_name: product.name,
+          p_product_image: product.image,
+          p_price: product.price
+        });
+        if (error) {
+          showToast(`Unable to update your shared cart: ${error.message}`);
+          return;
+        }
+
+        setCartItems((prev) => {
+          const existing = prev.find((item) => item.id === product.id);
+          if (existing) {
+            return prev.map((item) =>
+              item.id === product.id
+                ? { ...item, ...product, quantity: Number(data?.quantity ?? existing.quantity + 1) }
+                : item
+            );
+          }
+          return [...prev, { ...product, quantity: Number(data?.quantity ?? 1) }];
+        });
+        showToast(`Added ${product.name} to your shared cart`);
+      } catch (error) {
+        showToast(`Unable to update your shared cart: ${error instanceof Error ? error.message : 'Please try again.'}`);
+      }
+      return;
+    }
+
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
       if (existing) {
@@ -92,19 +278,83 @@ export default function App() {
     showToast(`Added ${product.name} to your cart`);
   };
 
-  const handleUpdateQuantity = (productId, newQty) => {
+  const handleUpdateQuantity = async (productId, newQty) => {
     if (newQty <= 0) {
-      handleRemoveItem(productId);
+      await handleRemoveItem(productId);
       return;
     }
+
+    if (user && supabase) {
+      if (sharedCartReadyFor !== user.id) {
+        showToast('Your shared cart is still loading. Please try again.');
+        return;
+      }
+
+      try {
+        const { error } = await supabase
+          .from('cart_items')
+          .update({ quantity: newQty, updated_at: getIsoTimestamp() })
+          .eq('user_id', user.id)
+          .eq('product_id', productId);
+        if (error) {
+          showToast(`Unable to update your shared cart: ${error.message}`);
+          return;
+        }
+      } catch (error) {
+        showToast(`Unable to update your shared cart: ${error instanceof Error ? error.message : 'Please try again.'}`);
+        return;
+      }
+    }
+
     setCartItems((prev) =>
       prev.map((item) => (item.id === productId ? { ...item, quantity: newQty } : item))
     );
   };
 
-  const handleRemoveItem = (productId) => {
+  const handleRemoveItem = async (productId) => {
+    if (user && supabase) {
+      if (sharedCartReadyFor !== user.id) {
+        showToast('Your shared cart is still loading. Please try again.');
+        return;
+      }
+      try {
+        const { error } = await supabase
+          .from('cart_items')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('product_id', productId);
+        if (error) {
+          showToast(`Unable to update your shared cart: ${error.message}`);
+          return;
+        }
+      } catch (error) {
+        showToast(`Unable to update your shared cart: ${error instanceof Error ? error.message : 'Please try again.'}`);
+        return;
+      }
+    }
+
     setCartItems((prev) => prev.filter((item) => item.id !== productId));
     showToast('Item removed from cart');
+  };
+
+  const handleClearCart = async () => {
+    if (user && supabase) {
+      if (sharedCartReadyFor !== user.id) {
+        showToast('Your shared cart is still loading. Please try again.');
+        return;
+      }
+      try {
+        const { error } = await supabase.from('cart_items').delete().eq('user_id', user.id);
+        if (error) {
+          showToast(`Unable to clear your shared cart: ${error.message}`);
+          return;
+        }
+      } catch (error) {
+        showToast(`Unable to clear your shared cart: ${error instanceof Error ? error.message : 'Please try again.'}`);
+        return;
+      }
+    }
+    setCartItems([]);
   };
 
   const handleToggleWishlist = (productId) => {
@@ -129,6 +379,43 @@ export default function App() {
     showToast(`Order #${newOrder.id} successfully created!`);
   };
 
+  const handleAddProduct = (newProduct) => {
+    setProducts((prev) => [newProduct, ...prev]);
+    showToast(`Product "${newProduct.name}" added to catalog!`);
+  };
+
+  const handleUpdateProduct = (updatedProduct) => {
+    setProducts((prev) =>
+      prev.map((p) => (p.id === updatedProduct.id ? { ...p, ...updatedProduct } : p))
+    );
+    if (selectedProduct?.id === updatedProduct.id) {
+      setSelectedProduct((prev) => ({ ...prev, ...updatedProduct }));
+    }
+    showToast(`Updated "${updatedProduct.name}"!`);
+  };
+
+  const handleDeleteProduct = (productId) => {
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    showToast('Product removed from shop catalog');
+  };
+
+  const handleResetProducts = () => {
+    setProducts(PRODUCTS);
+    try {
+      localStorage.removeItem('chygodwin_products');
+    } catch (err) {
+      console.error(err);
+    }
+    showToast('Catalog reset to official 62 items');
+  };
+
+  const handleUpdateOrderStatus = (orderId, newStatus) => {
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+    );
+    showToast(`Order #${orderId} marked as ${newStatus}`);
+  };
+
   const handleGoogleSignIn = async () => {
     setAuthError('');
     if (!supabase) {
@@ -144,6 +431,50 @@ export default function App() {
       if (error) setAuthError(error.message);
     } catch {
       setAuthError('Unable to start Google sign-in. Please try again.');
+    }
+  };
+
+  const handleEmailSignIn = async (email, password) => {
+    setAuthError('');
+    if (!supabase) {
+      setAuthError('Email sign-in is not configured for this deployment.');
+      return false;
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error) {
+        setAuthError(error.message);
+        return false;
+      }
+      return true;
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Unable to sign in. Please try again.');
+      return false;
+    }
+  };
+
+  const handleEmailRegister = async (email, password) => {
+    setAuthError('');
+    if (!supabase) {
+      setAuthError('Email registration is not configured for this deployment.');
+      return false;
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signUp({ email: email.trim(), password });
+      if (error) {
+        setAuthError(error.message);
+        return false;
+      }
+      if (!data.session) {
+        setAuthError('Check your email for a confirmation link, then sign in on both devices with this account.');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Unable to create your account. Please try again.');
+      return false;
     }
   };
 
@@ -216,6 +547,7 @@ export default function App() {
       <div style={{ flex: 1 }}>
         {activeView === 'home' && (
           <HomeView
+            products={products}
             onAddToCart={handleAddToCart}
             onToggleWishlist={handleToggleWishlist}
             wishlist={wishlist}
@@ -230,6 +562,7 @@ export default function App() {
 
         {activeView === 'shop' && (
           <ShopView
+            products={products}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
             searchTerm={searchTerm}
@@ -244,10 +577,11 @@ export default function App() {
 
         {activeView === 'product-detail' && (
           <ProductDetailView
+            products={products}
             product={selectedProduct}
             onAddToCart={handleAddToCart}
             onToggleWishlist={handleToggleWishlist}
-            isWishlisted={wishlist.includes(selectedProduct.id)}
+            isWishlisted={wishlist.includes(selectedProduct?.id)}
             onSelectProduct={handleSelectProduct}
             onNavigate={setActiveView}
           />
@@ -256,7 +590,7 @@ export default function App() {
         {activeView === 'checkout' && (
           <CheckoutView
             cartItems={cartItems}
-            onClearCart={() => setCartItems([])}
+            onClearCart={handleClearCart}
             onNavigate={setActiveView}
             onOrderPlaced={handleOrderPlaced}
           />
@@ -274,17 +608,29 @@ export default function App() {
             authConfigured={isSupabaseConfigured}
             authError={authError}
             onGoogleSignIn={handleGoogleSignIn}
+            onEmailSignIn={handleEmailSignIn}
+            onEmailRegister={handleEmailRegister}
             onSignOut={handleSignOut}
             onNavigate={setActiveView}
           />
         )}
 
         {activeView === 'admin' && (
-          <AdminView orders={orders} />
+          <AdminView
+            products={products}
+            onAddProduct={handleAddProduct}
+            onUpdateProduct={handleUpdateProduct}
+            onDeleteProduct={handleDeleteProduct}
+            onResetProducts={handleResetProducts}
+            orders={orders}
+            onUpdateOrderStatus={handleUpdateOrderStatus}
+            onNavigate={setActiveView}
+          />
         )}
 
         {activeView === 'mobile-preview' && (
           <MobilePhoneMockup
+            products={products}
             onAddToCart={handleAddToCart}
             cartCount={totalCartCount}
             onSelectProduct={handleSelectProduct}
@@ -295,6 +641,9 @@ export default function App() {
 
       {/* Global Footer */}
       <Footer onNavigate={setActiveView} />
+
+      {/* Live WhatsApp ordering chat */}
+      <WhatsAppChat products={products} cartItems={cartItems} onAddToCart={handleAddToCart} />
     </div>
   );
 }

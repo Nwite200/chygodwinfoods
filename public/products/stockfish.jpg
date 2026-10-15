@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="145" fill="#F1F5F9" opacity="0.45"/>
+  
+    <path d="M 130 180 Q 180 110 270 160 Q 260 230 180 240 Z" fill="#94A3B8" stroke="#475569" stroke-width="4"/>
+    <circle cx="235" cy="165" r="7" fill="#1E293B"/>
+    <path d="M 160 190 Q 200 170 240 200" stroke="#CBD5E1" stroke-width="3" fill="none"/>
+  
+  <!-- Label card -->
+  <rect x="110" y="275" width="180" height="70" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.06))"/>
+  <rect x="120" y="283" width="160" height="18" rx="4" fill="#0C6837"/>
+  <text x="200" y="296" font-family="system-ui, sans-serif" font-weight="900" font-size="10" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">TRADITIONAL BROTH</text>
+  <text x="200" y="322" font-family="system-ui, sans-serif" font-weight="900" font-size="15" fill="#062E1D" text-anchor="middle">STOCKFISH HEAD</text>
+  <text x="200" y="337" font-family="system-ui, sans-serif" font-weight="700" font-size="10" fill="#64748B" text-anchor="middle">Authentic Okporoko</text>
+</svg>

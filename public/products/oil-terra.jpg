@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="145" fill="#FEF9C3" opacity="0.45"/>
+  
+    <rect x="150" y="70" width="100" height="190" rx="14" fill="#FDE047" stroke="#CA8A04" stroke-width="3"/>
+    <rect x="175" y="45" width="50" height="26" rx="4" fill="#A16207"/>
+    <rect x="160" y="140" width="80" height="60" rx="6" fill="#15803D"/>
+    <text x="200" y="165" font-family="system-ui, sans-serif" font-weight="900" font-size="11" fill="#FEF08A" text-anchor="middle">PURE</text>
+    <text x="200" y="182" font-family="system-ui, sans-serif" font-weight="900" font-size="12" fill="#FFFFFF" text-anchor="middle">COOKING OIL</text>
+  
+  <!-- Label card -->
+  <rect x="110" y="275" width="180" height="70" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.06))"/>
+  <rect x="120" y="283" width="160" height="18" rx="4" fill="#0C6837"/>
+  <text x="200" y="296" font-family="system-ui, sans-serif" font-weight="900" font-size="10" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">CHOLESTEROL FREE</text>
+  <text x="200" y="322" font-family="system-ui, sans-serif" font-weight="900" font-size="15" fill="#062E1D" text-anchor="middle">VEGETABLE OIL</text>
+  <text x="200" y="337" font-family="system-ui, sans-serif" font-weight="700" font-size="10" fill="#64748B" text-anchor="middle">Golden Terra • BTF • WGO</text>
+</svg>

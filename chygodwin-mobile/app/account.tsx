@@ -1,9 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
+import { useCart } from '../lib/cart';
 
 export default function AccountScreen() {
   const router = useRouter();
+  const { session } = useCart();
 
   const handleLogout = async () => {
     if (!supabase) {
@@ -22,16 +24,26 @@ export default function AccountScreen() {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Profile</Text>
-        <Text style={styles.cardText}>Use the same email you signed in with on the web.</Text>
+        <Text style={styles.cardText}>
+          {session?.user.email ?? 'Sign in with the same account you use on the website to sync your cart.'}
+        </Text>
       </View>
+
+      {!session ? (
+        <Pressable style={styles.button} onPress={() => router.push('/login')}>
+          <Text style={styles.buttonText}>Sign in or create account</Text>
+        </Pressable>
+      ) : null}
 
       <Pressable style={styles.button} onPress={() => router.push('/orders')}>
         <Text style={styles.buttonText}>View orders</Text>
       </Pressable>
 
-      <Pressable style={styles.secondaryButton} onPress={handleLogout}>
-        <Text style={styles.secondaryButtonText}>Logout</Text>
-      </Pressable>
+      {session ? (
+        <Pressable style={styles.secondaryButton} onPress={handleLogout}>
+          <Text style={styles.secondaryButtonText}>Logout</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

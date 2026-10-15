@@ -11,6 +11,7 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.chygodwinfoods.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -35,6 +36,13 @@
       "startUrl": "/",
       "scope": "/",
       "orientation": "portrait"
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "6d728fad-5298-4dc9-abf5-a499e522b62c"
+      }
+    },
+    "owner": "jerry200"
   }
 }

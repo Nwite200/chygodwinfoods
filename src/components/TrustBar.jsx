@@ -5,23 +5,23 @@ export default function TrustBar() {
   const items = [
     {
       icon: <Sparkles size={22} />,
-      title: 'Fresh & Quality',
-      subtitle: '100% Authentic Nigerian Staples'
+      title: 'Quality & Affordable',
+      subtitle: 'Pure farm-direct Nigerian staples'
     },
     {
       icon: <Truck size={22} />,
-      title: 'Fast & Reliable',
-      subtitle: 'Doorstep Delivery'
+      title: 'Nationwide & Beyond Waybill',
+      subtitle: 'Dispatched from Nkwelle Light of God'
     },
     {
       icon: <ShieldCheck size={22} />,
-      title: 'Secure Payment',
-      subtitle: '256-Bit SSL Encrypted'
+      title: 'Moniepoint Verified',
+      subtitle: 'Acc No: 8063654393'
     },
     {
       icon: <ThumbsUp size={22} />,
-      title: 'Trusted by Nigerians',
-      subtitle: 'Home & Diaspora Preferred'
+      title: '62 Available Staples',
+      subtitle: 'Grains, oils, egusi & food combos'
     }
   ];
 

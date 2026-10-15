@@ -14,6 +14,7 @@ import {
 import { PRODUCTS, CATEGORIES } from '../data/products';
 
 export default function MobilePhoneMockup({
+  products = PRODUCTS,
   onAddToCart,
   cartCount,
   onSelectProduct,
@@ -22,7 +23,7 @@ export default function MobilePhoneMockup({
   const [mobileTab, setMobileTab] = useState('home');
   const [mobileSearch, setMobileSearch] = useState('');
 
-  const featured = PRODUCTS.slice(0, 4);
+  const featured = products.slice(0, 4);
 
   return (
     <div className="phone-mockup-wrapper">

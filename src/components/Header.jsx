@@ -1,5 +1,7 @@
 import React from 'react';
-import { Search, ShoppingCart, User } from 'lucide-react';
+import { Search, ShoppingCart, User, ShieldCheck, MapPin, Truck, Phone } from 'lucide-react';
+import { STORE_INFO } from '../data/products';
+import StoreLogo from './StoreLogo';
 
 export default function Header({
   activeView,
@@ -11,17 +13,36 @@ export default function Header({
 }) {
   return (
     <header>
+      {/* Top Business & Delivery Announcement Bar */}
+      <div style={{ background: '#042416', color: '#D1D5DB', fontSize: '0.78rem', padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="header-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#4ADE80', fontWeight: 700 }}>
+              <MapPin size={13} /> Located at Nkwelle Light of God estate
+            </span>
+            <span style={{ color: '#64748B' }}>•</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Truck size={13} color="#38BDF8" /> We waybill &amp; deliver Nationwide &amp; beyond
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Phone size={12} color="#FBBF24" /> Call / WhatsApp: <strong style={{ color: '#FFF' }}>08063654393</strong>
+            </span>
+            <span style={{ color: '#64748B' }}>|</span>
+            <span style={{ color: '#A7F3D0' }}>
+              Quality &amp; affordable prices
+            </span>
+          </div>
+        </div>
+      </div>
+
       <div className="main-header">
         <div className="header-container">
           {/* Logo */}
-          <div className="brand-logo" onClick={() => setActiveView('home')}>
-            <div className="brand-emblem">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12"/>
-                <path d="M7 12c2.5-3 6-3 8-1s2 5.5-1 7.5c-2.5 1.5-5 .5-6-1.5"/>
-                <path d="M12 6v6"/>
-              </svg>
-            </div>
+          <div className="brand-logo" onClick={() => setActiveView('home')} style={{ cursor: 'pointer' }}>
+            <StoreLogo size={46} />
             <div className="brand-text-block">
               <span className="brand-title">ChyGodwin</span>
               <span className="brand-subtitle">Foodstuff Global</span>
@@ -34,7 +55,7 @@ export default function Header({
             <input
               type="text"
               className="header-search-input"
-              placeholder="Search for products (Semovita, Garri, Palm Oil...)"
+              placeholder="Search 62 staples (Dates powder, Ogbono, Palm Oil, Garri, Yams...)"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -59,7 +80,7 @@ export default function Header({
               className={`nav-link ${activeView === 'shop' ? 'active' : ''}`}
               onClick={(e) => { e.preventDefault(); setActiveView('shop'); }}
             >
-              Shop
+              Shop All
             </a>
             <a
               href="#categories"
@@ -69,11 +90,19 @@ export default function Header({
               Categories
             </a>
             <a
-              href="#about"
-              className="nav-link"
-              onClick={(e) => { e.preventDefault(); setActiveView('home'); }}
+              href="#admin"
+              className={`nav-link ${activeView === 'admin' ? 'active' : ''}`}
+              onClick={(e) => { e.preventDefault(); setActiveView('admin'); }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                color: activeView === 'admin' ? '#0C6837' : '#0F172A',
+                fontWeight: 800
+              }}
             >
-              About Us
+              <ShieldCheck size={16} color="#0C6837" />
+              Admin
             </a>
             <a
               href="#contact"
@@ -91,11 +120,32 @@ export default function Header({
           <div className="header-actions">
             <button
               className="header-btn"
+              title="Admin Dashboard (Product Upload &amp; Price Changes)"
+              onClick={() => setActiveView('admin')}
+              style={{
+                background: activeView === 'admin' ? '#DCFCE7' : '#F1F5F9',
+                color: activeView === 'admin' ? '#166534' : '#0F172A',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 9999,
+                fontSize: '0.8rem',
+                fontWeight: 800
+              }}
+            >
+              <ShieldCheck size={16} color="#16A34A" />
+              <span>Admin Panel</span>
+            </button>
+
+            <button
+              className="header-btn"
               title="User Account"
               onClick={() => setActiveView('account')}
             >
               <User size={19} />
             </button>
+
             <button
               className="header-btn"
               title="Cart Drawer"

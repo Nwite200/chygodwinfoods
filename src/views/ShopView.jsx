@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { ChevronRight, Filter, X, SlidersHorizontal } from 'lucide-react';
+import { ChevronRight, X } from 'lucide-react';
 import ProductCard from '../components/ProductCard';
-import { CATEGORIES, BRANDS, PRODUCTS } from '../data/products';
+import { CATEGORIES, PRODUCTS } from '../data/products';
 
 export default function ShopView({
+  products = PRODUCTS,
   selectedCategory,
   onSelectCategory,
   searchTerm,
@@ -18,14 +19,21 @@ export default function ShopView({
   const [selectedBrands, setSelectedBrands] = useState([]);
   const [sortBy, setSortBy] = useState('popularity');
   const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 16;
 
   const priceRanges = [
     { id: 'all', label: 'All Prices' },
-    { id: '0-1000', label: '₦0 - ₦1,000', min: 0, max: 1000 },
-    { id: '1001-5000', label: '₦1,001 - ₦5,000', min: 1001, max: 5000 },
+    { id: '0-2500', label: '₦0 - ₦2,500', min: 0, max: 2500 },
+    { id: '2501-5000', label: '₦2,501 - ₦5,000', min: 2501, max: 5000 },
     { id: '5001-10000', label: '₦5,001 - ₦10,000', min: 5001, max: 10000 },
     { id: '10001+', label: '₦10,001+', min: 10001, max: 999999 }
   ];
+
+  // Available brands derived dynamically from current products
+  const availableBrands = useMemo(() => {
+    const set = new Set(products.map((p) => p.brand).filter(Boolean));
+    return Array.from(set);
+  }, [products]);
 
   const handleBrandToggle = (brand) => {
     setSelectedBrands((prev) =>
@@ -44,7 +52,7 @@ export default function ShopView({
 
   // Filtered & Sorted Products
   const filteredProducts = useMemo(() => {
-    return PRODUCTS.filter((p) => {
+    return products.filter((p) => {
       // Category filter
       if (selectedCategory && p.category !== selectedCategory) {
         return false;
@@ -54,9 +62,10 @@ export default function ShopView({
       if (searchTerm.trim()) {
         const query = searchTerm.toLowerCase();
         const matchesName = p.name.toLowerCase().includes(query);
-        const matchesBrand = p.brand.toLowerCase().includes(query);
-        const matchesCat = p.categoryName.toLowerCase().includes(query);
-        if (!matchesName && !matchesBrand && !matchesCat) return false;
+        const matchesBrand = p.brand?.toLowerCase().includes(query);
+        const matchesCat = p.categoryName?.toLowerCase().includes(query);
+        const matchesDesc = p.description?.toLowerCase().includes(query);
+        if (!matchesName && !matchesBrand && !matchesCat && !matchesDesc) return false;
       }
 
       // Brand filter
@@ -78,19 +87,21 @@ export default function ShopView({
       if (sortBy === 'price-high') return b.price - a.price;
       if (sortBy === 'rating') return b.rating - a.rating;
       // Default: popularity / reviews
-      return b.reviewsCount - a.reviewsCount;
+      return (b.reviewsCount || 0) - (a.reviewsCount || 0);
     });
-  }, [selectedCategory, searchTerm, selectedBrands, selectedPriceRange, sortBy]);
+  }, [products, selectedCategory, searchTerm, selectedBrands, selectedPriceRange, sortBy]);
 
   const totalResults = filteredProducts.length;
+  const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div>
       {/* Banner */}
       <div className="shop-header-banner">
         <div className="section-container">
-          <h1>Our Shop</h1>
-          <p>Quality Nigerian foodstuff, fresh and affordable.</p>
+          <h1>Our Shop Catalog ({products.length} Items)</h1>
+          <p>Quality Nigerian foodstuff, fresh and affordable. We waybill Nationwide and beyond from Nkwelle Light of God estate.</p>
           <div className="breadcrumbs">
             <a href="#home" onClick={(e) => { e.preventDefault(); onNavigate('home'); }}>Home</a>
             <ChevronRight size={14} />
@@ -142,6 +153,12 @@ export default function ShopView({
                       <X size={12} style={{ cursor: 'pointer' }} onClick={() => handleBrandToggle(b)} />
                     </span>
                   ))}
+                  {searchTerm && (
+                    <span style={{ background: '#DCFCE7', color: '#166534', padding: '3px 8px', borderRadius: 9999, fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      "{searchTerm}"
+                      <X size={12} style={{ cursor: 'pointer' }} onClick={() => setSearchTerm('')} />
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -166,7 +183,7 @@ export default function ShopView({
                     onClick={() => { onSelectCategory(''); setCurrentPage(1); }}
                   >
                     <span>All Categories</span>
-                    <span className="filter-count">{PRODUCTS.length}</span>
+                    <span className="filter-count">{products.length}</span>
                   </button>
                 </li>
                 {CATEGORIES.map((cat) => (
@@ -177,7 +194,7 @@ export default function ShopView({
                     >
                       <span>{cat.name}</span>
                       <span className="filter-count">
-                        {PRODUCTS.filter((p) => p.category === cat.id).length}
+                        {products.filter((p) => p.category === cat.id).length}
                       </span>
                     </button>
                   </li>
@@ -206,7 +223,7 @@ export default function ShopView({
             <div className="filter-block">
               <h3 className="filter-title">Brand</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {BRANDS.map((brand) => (
+                {availableBrands.map((brand) => (
                   <label key={brand} className="filter-checkbox-label">
                     <input
                       type="checkbox"
@@ -224,7 +241,7 @@ export default function ShopView({
           <main>
             <div className="shop-top-controls">
               <span className="shop-results-count">
-                Showing {totalResults > 0 ? `1-${Math.min(totalResults, 12)}` : '0'} of {totalResults} products
+                Showing {totalResults > 0 ? `${(currentPage - 1) * pageSize + 1}-${Math.min(totalResults, currentPage * pageSize)}` : '0'} of {totalResults} products
               </span>
 
               <div className="shop-sort-wrap">
@@ -248,7 +265,7 @@ export default function ShopView({
                   No foodstuff items found matching your filters.
                 </p>
                 <p style={{ color: '#64748B', fontSize: '0.9rem', marginBottom: 20 }}>
-                  Try resetting your search query or selecting a different price range.
+                  Try resetting your search query or selecting a different category.
                 </p>
                 <button className="btn-primary-pill" onClick={clearAllFilters}>
                   Clear All Filters
@@ -256,7 +273,7 @@ export default function ShopView({
               </div>
             ) : (
               <div className="product-grid">
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
@@ -269,25 +286,33 @@ export default function ShopView({
               </div>
             )}
 
-            {/* Pagination matching reference [1] [2] [3] [4] [5] > */}
-            {totalResults > 0 && (
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
               <div className="pagination-bar">
-                {[1, 2, 3, 4, 5].map((pageNum) => (
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
                   <button
                     key={pageNum}
                     className={`page-btn ${currentPage === pageNum ? 'active' : ''}`}
-                    onClick={() => setCurrentPage(pageNum)}
+                    onClick={() => {
+                      setCurrentPage(pageNum);
+                      window.scrollTo({ top: 200, behavior: 'smooth' });
+                    }}
                   >
                     {pageNum}
                   </button>
                 ))}
-                <button
-                  className="page-btn"
-                  onClick={() => setCurrentPage((p) => Math.min(5, p + 1))}
-                  title="Next Page"
-                >
-                  &gt;
-                </button>
+                {currentPage < totalPages && (
+                  <button
+                    className="page-btn"
+                    onClick={() => {
+                      setCurrentPage((p) => p + 1);
+                      window.scrollTo({ top: 200, behavior: 'smooth' });
+                    }}
+                    title="Next Page"
+                  >
+                    &gt;
+                  </button>
+                )}
               </div>
             )}
           </main>

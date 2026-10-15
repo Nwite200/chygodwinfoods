@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="100%" height="100%">
+  <rect width="400" height="400" fill="#F8FAFC"/>
+  <circle cx="200" cy="200" r="145" fill="#FCE7F3" opacity="0.45"/>
+  
+    <ellipse cx="170" cy="180" rx="36" ry="42" fill="#9D174D" stroke="#831843" stroke-width="3"/>
+    <ellipse cx="230" cy="180" rx="38" ry="44" fill="#BE185D" stroke="#831843" stroke-width="3"/>
+    <path d="M 170 138 L 170 125" stroke="#047857" stroke-width="4"/>
+    <path d="M 230 136 L 230 120" stroke="#047857" stroke-width="4"/>
+  
+  <!-- Label card -->
+  <rect x="110" y="275" width="180" height="70" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="2" filter="drop-shadow(0 4px 6px rgba(0,0,0,0.06))"/>
+  <rect x="120" y="283" width="160" height="18" rx="4" fill="#0C6837"/>
+  <text x="200" y="296" font-family="system-ui, sans-serif" font-weight="900" font-size="10" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">FRESH AROMATIC</text>
+  <text x="200" y="322" font-family="system-ui, sans-serif" font-weight="900" font-size="15" fill="#062E1D" text-anchor="middle">PENTERS OF ONIONS</text>
+  <text x="200" y="337" font-family="system-ui, sans-serif" font-weight="700" font-size="10" fill="#64748B" text-anchor="middle">Sweet Red Nigerian Onions</text>
+</svg>

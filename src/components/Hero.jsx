@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, Sparkles, MapPin, Truck, ShieldCheck } from 'lucide-react';
 
 export default function Hero({ onShopNow, onBrowseCategories }) {
   return (
@@ -11,22 +11,33 @@ export default function Hero({ onShopNow, onBrowseCategories }) {
         <div>
           <div className="hero-tag">
             <Sparkles size={14} />
-            <span>NIGERIAN FOODSTUFFS • FRESH • QUALITY • GLOBAL</span>
+            <span>NKWELLE LIGHT OF GOD ESTATE • NATIONWIDE &amp; BEYOND WAYBILL</span>
           </div>
 
           <h1 className="hero-title">
-            Your Trusted Source<br />
-            for Quality <span className="hero-title-highlight">Nigerian Foodstuff</span>
+            Quality &amp; Affordable<br />
+            <span className="hero-title-highlight">Nigerian Foodstuff</span>
           </h1>
 
           <p className="hero-description">
-            From your favourite local staples to everyday essentials, ChyGodwin Foodstuff Global
-            brings you the best Nigerian foodstuff, delivered right to your doorstep.
+            Welcome to <strong>Chygodwin Foodstuffs Global Concept</strong>. Located at Nkwelle Light of God estate, we waybill and deliver quality, affordable Nigerian food staples nationwide and beyond. From whole tubers of yam, pure palm oil, and stone-free rice to Ador Ogbonno, egusi, and family food combos.
           </p>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, margin: '18px 0 24px 0', fontSize: '0.84rem', color: '#D1D5DB' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 12px', borderRadius: 9999 }}>
+              <MapPin size={14} color="#4ADE80" /> Nkwelle Light of God Estate
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 12px', borderRadius: 9999 }}>
+              <Truck size={14} color="#38BDF8" /> Nationwide &amp; Diaspora Waybill
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 12px', borderRadius: 9999 }}>
+              <ShieldCheck size={14} color="#FBBF24" /> Moniepoint: 8063654393
+            </span>
+          </div>
 
           <div className="hero-cta-group">
             <button className="btn-primary-pill" onClick={onShopNow}>
-              Shop Now <ArrowRight size={17} />
+              Shop 62 Items Now <ArrowRight size={17} />
             </button>
             <button className="btn-secondary-pill" onClick={onBrowseCategories}>
               Browse Categories
@@ -44,8 +55,8 @@ export default function Hero({ onShopNow, onBrowseCategories }) {
           <div className="hero-badge-overlay">
             <span className="hero-badge-dot"></span>
             <div>
-              <div className="hero-badge-text-title">100% Farm Fresh Guarantee</div>
-              <div className="hero-badge-text-sub">Inspected &amp; Cleaned for Pure Quality</div>
+              <div className="hero-badge-text-title">Quality &amp; Affordable Prices</div>
+              <div className="hero-badge-text-sub">We Waybill Nationwide &amp; Beyond</div>
             </div>
           </div>
         </div>
