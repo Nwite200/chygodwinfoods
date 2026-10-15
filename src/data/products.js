@@ -8,9 +8,9 @@ export const STORE_INFO = {
   whatsapp: '2348063654393',
   email: 'chygodwinfoodstuffs@gmail.com',
   bank: {
-    accountNumber: '8063654393',
-    accountName: 'Chygodwin Foodstuffs Global Concept',
-    bankName: 'Moniepoint'
+    accountNumber: import.meta.env.VITE_BANK_ACCOUNT_NUMBER || '',
+    accountName: import.meta.env.VITE_BANK_ACCOUNT_NAME || '',
+    bankName: import.meta.env.VITE_BANK_NAME || ''
   }
 };
 

@@ -31,7 +31,7 @@ export default function Hero({ onShopNow, onBrowseCategories }) {
               <Truck size={14} color="#38BDF8" /> Nationwide &amp; Diaspora Waybill
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.08)', padding: '6px 12px', borderRadius: 9999 }}>
-              <ShieldCheck size={14} color="#FBBF24" /> Moniepoint: 8063654393
+              <ShieldCheck size={14} color="#FBBF24" /> Moniepoint: •••• ••••
             </span>
           </div>
 

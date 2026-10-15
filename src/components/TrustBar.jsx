@@ -16,7 +16,7 @@ export default function TrustBar() {
     {
       icon: <ShieldCheck size={22} />,
       title: 'Moniepoint Verified',
-      subtitle: 'Acc No: 8063654393'
+      subtitle: 'Acc No: •••• ••••'
     },
     {
       icon: <ThumbsUp size={22} />,

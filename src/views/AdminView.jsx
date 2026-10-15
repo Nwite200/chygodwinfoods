@@ -24,7 +24,7 @@ import {
   Calendar,
   Layers
 } from 'lucide-react';
-import { CATEGORIES } from '../data/products';
+import { CATEGORIES, STORE_INFO } from '../data/products';
 
 export default function AdminView({
   products = [],
@@ -1677,25 +1677,25 @@ export default function AdminView({
 
               <div style={{ fontSize: '0.82rem', color: '#D1D5DB' }}>Account Number:</div>
               <div style={{ fontSize: '2.1rem', fontWeight: 900, letterSpacing: '0.06em', color: '#FEF08A', margin: '4px 0 16px 0' }}>
-                8063654393
+                {STORE_INFO.bank.accountNumber || '•••• ••••'}
               </div>
 
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 14 }}>
                 <div style={{ fontSize: '0.82rem', color: '#D1D5DB' }}>Account Name:</div>
                 <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#FFFFFF', marginTop: 2 }}>
-                  Chygodwin Foodstuffs Global Concept
+                  {STORE_INFO.bank.accountName || 'Chygodwin Foodstuffs Global Concept'}
                 </div>
               </div>
 
               <div style={{ marginTop: 14 }}>
                 <div style={{ fontSize: '0.82rem', color: '#D1D5DB' }}>Bank Name:</div>
                 <div style={{ fontSize: '1rem', fontWeight: 800, color: '#86EFAC', marginTop: 2 }}>
-                  Moniepoint Microfinance Bank
+                  {STORE_INFO.bank.bankName || 'Moniepoint Microfinance Bank'}
                 </div>
               </div>
 
               <div style={{ marginTop: 20, background: 'rgba(255,255,255,0.1)', padding: 12, borderRadius: 10, fontSize: '0.78rem', color: '#E2E8F0' }}>
-                All payments made during checkout go straight into this Moniepoint account. Customers submit transfer receipts via WhatsApp to 08063654393.
+                All payments made during checkout go straight into this Moniepoint account. Customers submit transfer receipts via WhatsApp to {STORE_INFO.phone}.
               </div>
             </div>
 
@@ -1720,7 +1720,7 @@ export default function AdminView({
               <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.82rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Primary Phone / WhatsApp:</span>
-                  <strong>08063654393</strong>
+                  <strong>{STORE_INFO.phone}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid var(--border-light)', paddingBottom: 6 }}>
                   <span style={{ color: 'var(--text-muted)' }}>Value Proposition:</span>

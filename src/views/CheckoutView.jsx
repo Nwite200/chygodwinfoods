@@ -11,6 +11,7 @@ import {
   FileDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { STORE_INFO } from '../data/products';
 import { downloadInvoicePdf } from '../utils/invoice';
 
 export default function CheckoutView({
@@ -375,8 +376,8 @@ export default function CheckoutView({
                     <button
                       type="button"
                       onClick={() => {
-                        navigator.clipboard.writeText('8063654393');
-                        alert('Account Number 8063654393 copied to clipboard!');
+                        navigator.clipboard.writeText(STORE_INFO.bank.accountNumber || '');
+                        alert(`Account Number ${STORE_INFO.bank.accountNumber || '•••• ••••'} copied to clipboard!`);
                       }}
                       style={{
                         background: '#0C6837',
@@ -393,12 +394,12 @@ export default function CheckoutView({
                     </button>
                   </div>
 
-                  <p style={{ margin: '4px 0' }}><strong>Bank :</strong> Moniepoint</p>
-                  <p style={{ margin: '4px 0' }}><strong>Acc No:</strong> <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-green)', letterSpacing: '0.04em' }}>8063654393</span></p>
-                  <p style={{ margin: '4px 0' }}><strong>Name:</strong> Chygodwin Foodstuffs Global Concept</p>
+                  <p style={{ margin: '4px 0' }}><strong>Bank :</strong> {STORE_INFO.bank.bankName || 'Moniepoint'}</p>
+                  <p style={{ margin: '4px 0' }}><strong>Acc No:</strong> <span style={{ fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-green)', letterSpacing: '0.04em' }}>{STORE_INFO.bank.accountNumber || '•••• ••••'}</span></p>
+                  <p style={{ margin: '4px 0' }}><strong>Name:</strong> {STORE_INFO.bank.accountName || 'Chygodwin Foodstuffs Global Concept'}</p>
 
                   <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.7)', padding: 10, borderRadius: 8, fontSize: '0.78rem', color: 'var(--text-green-strong)', lineHeight: '1.4' }}>
-                    💡 <em>After making your transfer, please send proof of payment on WhatsApp to <strong>08063654393</strong> for immediate package dispatch.</em>
+                    💡 <em>After making your transfer, please send proof of payment on WhatsApp to <strong>{STORE_INFO.phone}</strong> for immediate package dispatch.</em>
                   </div>
                 </div>
               )}
