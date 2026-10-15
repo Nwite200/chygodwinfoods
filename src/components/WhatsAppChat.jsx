@@ -16,13 +16,25 @@ const QUICK = [
 
 const STOP = new Set(['price','cost','how','much','have','need','want','buy','order','show','find','search','what','the','for','with','is','are','any','do','you','sell','get']);
 
-// --- Voice helpers (browser Speech Synthesis + Speech Recognition, no keys needed) ---
-function pickVoice(lang = 'en') {
+// --- Voice helpers: warm female voice, natural pace (browser Speech Synthesis, no keys needed) ---
+const FEMALE_HINTS = ['female', 'woman', 'samantha', 'zira', 'google uk english female', 'google us english', 'jenny', 'aria', 'sonia', 'libby', 'victoria', 'tessa', 'kate', 'susan', 'karen', 'moira', 'fiona', 'veena', 'rishi'];
+function pickVoice() {
   try {
     const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-    return voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('en-ng'))
-      || voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('en'))
-      || voices[0] || null;
+    if (!voices.length) return null;
+    const en = voices.filter((v) => v.lang && v.lang.toLowerCase().startsWith('en'));
+    const pool = en.length ? en : voices;
+    // 1) prefer an explicitly female-sounding voice
+    const female = pool.find((v) => FEMALE_HINTS.some((h) => `${v.name} ${v.voiceURI || ''}`.toLowerCase().includes(h)));
+    if (female) return female;
+    // 2) prefer Google / natural / neural voices (clearest + most accurate)
+    const natural = pool.find((v) => /google|natural|neural|premium|enhanced/i.test(`${v.name} ${v.voiceURI || ''}`));
+    if (natural) return natural;
+    // 3) prefer Nigerian / UK / US English in that order
+    return pool.find((v) => v.lang.toLowerCase().startsWith('en-ng'))
+      || pool.find((v) => v.lang.toLowerCase().startsWith('en-gb'))
+      || pool.find((v) => v.lang.toLowerCase().startsWith('en-us'))
+      || pool[0] || null;
   } catch { return null; }
 }
 function speakText(text, enabled) {
@@ -31,10 +43,17 @@ function speakText(text, enabled) {
     const synth = window.speechSynthesis;
     try { synth.resume(); } catch {}
     synth.cancel();
-    const clean = String(text || '').replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, '').slice(0, 280);
-    if (!clean.trim()) return;
+    // keep speech crisp: strip emojis/symbols, collapse whitespace, cap length
+    const clean = String(text || '')
+      .replace(/[^\p{L}\p{N}\p{P}\p{Zs}₦]/gu, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 320);
+    if (!clean) return;
     const u = new SpeechSynthesisUtterance(clean);
-    u.rate = 1; u.pitch = 1;
+    u.rate = 1.15;   // was 1.0 (too slow) — 1.15 sounds natural, not rushed
+    u.pitch = 1.15;  // slightly higher = warm feminine tone
+    u.volume = 1;
     const v = pickVoice();
     if (v) u.voice = v;
     synth.speak(u);
@@ -43,6 +62,7 @@ function speakText(text, enabled) {
       clearInterval(speakText._t);
       speakText._t = setInterval(() => { try { synth.resume(); } catch {} }, 5000);
       u.onend = () => clearInterval(speakText._t);
+      u.onerror = () => clearInterval(speakText._t);
     } catch {}
   } catch { /* ignore */ }
 }
