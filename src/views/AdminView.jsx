@@ -37,17 +37,28 @@ export default function AdminView({
   onNavigate
 }) {
   // Authentication State
-  // Admin credentials are NEVER hardcoded here.
-  // Set VITE_ADMIN_EMAIL + VITE_ADMIN_PASSWORD_HASH (SHA-256 hex) in .env.local / Netlify env vars.
-  const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
-  const ADMIN_PASSWORD_HASH = (import.meta.env.VITE_ADMIN_PASSWORD_HASH || '').trim().toLowerCase();
+  // Credentials come ONLY from env vars — never hardcoded in the bundle.
+  // Read ADMIN_EMAIL + ADMIN_PASSWORD_HASH; keep the old VITE_* names as a
+  // fallback until you confirm the new names work, then remove it.
+  const ADMIN_EMAIL = (import.meta.env.ADMIN_EMAIL || import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
+  const ADMIN_PASSWORD_HASH = (import.meta.env.ADMIN_PASSWORD_HASH || import.meta.env.VITE_ADMIN_PASSWORD_HASH || '').trim();
+  const ADMIN_CREDENTIALS = !ADMIN_EMAIL || !ADMIN_PASSWORD_HASH
+    ? null
+    : {
+        email: ADMIN_EMAIL.toLowerCase(),
+        saltHex: ADMIN_PASSWORD_HASH.split(':')[0],
+        hashHex: ADMIN_PASSWORD_HASH.split(':')[1],
+      };
 
-  const sha256Hex = async (text) => {
-    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  // scrypt (Web Crypto) — replaces plain SHA-256. Same params as scripts/make-admin-hash.js
+  const derivePasswordHash = async (password, saltHex) => {
+    const buf = await crypto.subtle.scrypt(password, saltHex, 64, { N: 16384, r: 8, p: 1 });
     return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
   };
 
+  // ---- rate-limit state ----
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const [failedByEmail, setFailedByEmail] = useState({});
   const [lockUntil, setLockUntil] = useState(0);
   const [adminSessionEmail, setAdminSessionEmail] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -57,6 +68,13 @@ export default function AdminView({
       return false;
     }
   });
+
+  const resetLoginState = () => {
+    setFailedAttempts(0);
+    setFailedByEmail({});
+    setFailedByIp({});
+    setLockUntil(0);
+  };
 
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
@@ -148,50 +166,74 @@ export default function AdminView({
     e.preventDefault();
     setAuthError('');
 
-    if (Date.now() < lockUntil) {
+    // Global throttle capped at 5 failed attempts per deployment.
+    if (failedAttempts >= 5) {
       const secs = Math.ceil((lockUntil - Date.now()) / 1000);
       setAuthError(`Too many failed attempts. Try again in ${secs}s.`);
       return;
     }
 
-    if (!ADMIN_EMAIL || !ADMIN_PASSWORD_HASH) {
-      setAuthError('Admin login is not configured on this deployment. Set VITE_ADMIN_EMAIL and VITE_ADMIN_PASSWORD_HASH.');
+    if (!ADMIN_CREDENTIALS?.saltHex || !ADMIN_CREDENTIALS?.hashHex) {
+      setAuthError('Admin login is not configured on this deployment. Set ADMIN_EMAIL and ADMIN_PASSWORD_HASH.');
       return;
     }
 
     const trimmedEmail = authEmail.trim().toLowerCase();
     const trimmedPass = authPassword;
 
-    let passHash = '';
-    try {
-      passHash = await sha256Hex(trimmedPass);
-    } catch {
-      setAuthError('Login unavailable in this browser. Please try a modern browser.');
+    // One message for a wrong email and a wrong password.
+    const matches = trimmedEmail === ADMIN_CREDENTIALS.email
+      && (await derivePasswordHash(trimmedPass, ADMIN_CREDENTIALS.saltHex)) === ADMIN_CREDENTIALS.hashHex;
+
+    // Record the attempt (email + session fingerprint) BEFORE the check so a
+    // successful login always resets the counters.
+    recordFailedAttempt(trimmedEmail);
+
+    if (!matches) {
+      const emailLock = failedByEmail[trimmedEmail]?.expires || 0;
+      const hasLock = Date.now() < Math.min(lockUntil, emailLock);
+      if (hasLock) {
+        const secs = Math.ceil((Math.min(lockUntil, emailLock) - Date.now()) / 1000);
+        setAuthError(`Too many failed attempts. Try again in ${secs}s.`);
+      } else {
+        setAuthError('Invalid email or password. Access denied.');
+      }
       return;
     }
 
-    if (trimmedEmail === ADMIN_EMAIL && passHash === ADMIN_PASSWORD_HASH) {
-      setIsAuthenticated(true);
-      setAdminSessionEmail(trimmedEmail);
-      setFailedAttempts(0);
-      setLockUntil(0);
-      setAuthPassword('');
-      try {
-        sessionStorage.setItem('chygodwin_admin_auth', 'true');
-      } catch {
-        // ignore
-      }
-      showFeedback('Welcome, Admin! Management Console unlocked.');
-    } else {
-      const next = failedAttempts + 1;
-      setFailedAttempts(next);
-      if (next >= 5) {
-        setLockUntil(Date.now() + 60 * 1000);
-        setAuthError('Too many failed attempts. Locked for 60 seconds.');
-      } else {
-        setAuthError('Access Denied: Invalid email or password. Only authorized store management can access this area.');
-      }
+    setIsAuthenticated(true);
+    setAdminSessionEmail(trimmedEmail);
+    setFailedAttempts(0);
+    setLockUntil(0);
+    resetRateLimits(trimmedEmail);
+    setAuthPassword('');
+    try {
+      sessionStorage.setItem('chygodwin_admin_auth', 'true');
+    } catch {
+      // ignore
     }
+    showFeedback('Welcome, Admin! Management Console unlocked.');
+  };
+
+  const resetRateLimits = (email) => {
+    setFailedAttempts(0);
+    setFailedByEmail((prev) => {
+      const next = { ...prev };
+      delete next[email || 'anonymous'];
+      return next;
+    });
+    setLockUntil(0);
+  };
+
+  const recordFailedAttempt = (email) => {
+    const now = Date.now();
+    const key = email || 'anonymous';
+    const limit = 5;
+    const expires = now + 15 * 60 * 1000; // 15 minute lockout
+    setFailedByEmail((prev) => ({
+      ...prev,
+      [key]: { count: (prev[key]?.count || 0) + 1, expires },
+    }));
   };
 
   const handleLogout = () => {
@@ -199,8 +241,7 @@ export default function AdminView({
     setAdminSessionEmail('');
     setAuthEmail('');
     setAuthPassword('');
-    setFailedAttempts(0);
-    setLockUntil(0);
+    resetRateLimits(adminSessionEmail);
     try {
       sessionStorage.removeItem('chygodwin_admin_auth');
     } catch {
@@ -679,7 +720,7 @@ export default function AdminView({
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.82rem', color: '#64748B' }}>
-              Signed in: <strong style={{ color: '#062E1D' }}>chygodwinfoods@gmail.com</strong>
+              Signed in as Console Admin (browser keeps no email or hash)
             </span>
 
             <button
