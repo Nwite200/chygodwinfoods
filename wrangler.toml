@@ -5,9 +5,9 @@
 [build]
 command = "npm run build"
 functions = "functions"
-dist_dir = "dist"
+pages_build_output_dir = "dist"
 
 [[kv_namespaces]]
 binding = "ADMIN_LIMITS_KV"
-id = ""
+id = "87b134c887d34afba5da0a26eb3c6a7b"
 preview_id = ""
