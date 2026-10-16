@@ -4,8 +4,8 @@
 // Local scrypt password hasher for the Chygodwin Admin Console.
 // Usage: node scripts/make-admin-hash.js   (type the password when prompted)
 // Prints: <saltHex>:<hashHex>  — paste into the ADMIN_PASSWORD_HASH env var
-// (Netlify: Site settings → Environment variables).
-// Same params as netlify/functions/admin-login.mjs — do not change one side only.
+// (Cloudflare Pages: Pages → Settings → Environment variables → Add a variable).
+// Same params as functions/api/admin-login.js — do not change one side only.
 
 import { randomBytes, scrypt } from 'node:crypto';
 import * as readline from 'node:readline';

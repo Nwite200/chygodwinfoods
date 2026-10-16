@@ -1,0 +1,13 @@
+# Cloudflare Pages configuration for Chygodwin Foodstuffs
+# Local dev:  npx wrangler pages dev
+# Deploy:     npx wrangler pages deploy dist
+
+[build]
+command = "npm run build"
+functions = "functions"
+dist_dir = "dist"
+
+[[kv_namespaces]]
+binding = "ADMIN_LIMITS_KV"
+id = ""
+preview_id = ""
