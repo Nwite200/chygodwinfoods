@@ -4,8 +4,10 @@
 
 [build]
 command = "npm run build"
-functions = "functions"
-pages_build_output_dir = "dist"
+publish = "dist"
+
+[functions]
+directory = "functions"
 
 [[kv_namespaces]]
 binding = "ADMIN_LIMITS_KV"
