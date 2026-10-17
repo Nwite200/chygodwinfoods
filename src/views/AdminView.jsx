@@ -105,11 +105,17 @@ export default function AdminView({
   const [authError, setAuthError] = useState('');
 
   // Dashboard Tabs
-  const [activeTab, setActiveTab] = useState('inventory'); // 'inventory', 'analytics', 'orders', 'business'
+  const [activeTab, setActiveTab] = useState('inventory'); // 'inventory', 'analytics', 'orders', 'categories', 'business'
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+
+  // Category Management
+  const [categories, setCategories] = useState(CATEGORIES);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryImagePreview, setCategoryImagePreview] = useState('');
   const [inlinePriceId, setInlinePriceId] = useState(null);
   const [inlinePriceVal, setInlinePriceVal] = useState('');
   const [feedbackMsg, setFeedbackMsg] = useState('');
@@ -146,6 +152,69 @@ export default function AdminView({
   const showFeedback = (msg) => {
     setFeedbackMsg(msg);
     setTimeout(() => setFeedbackMsg(''), 3000);
+  };
+
+  // Category Management Handlers
+  const handleOpenCategoryModal = (category = null) => {
+    setEditingCategory(category || null);
+    setCategoryImagePreview(category ? category.image : '');
+    setShowCategoryModal(true);
+  };
+
+  const handleCloseCategoryModal = () => {
+    setShowCategoryModal(false);
+    setEditingCategory(null);
+    setCategoryImagePreview('');
+  };
+
+  const handleCategoryImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      showFeedback('Please upload an image file.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setCategoryImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSaveCategory = (e) => {
+    e.preventDefault();
+    const nameInput = e.target.elements.categoryName;
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) {
+      showFeedback('Category name is required.');
+      return;
+    }
+    const id = editingCategory ? editingCategory.id : `cat-${Date.now()}`;
+    const updated = {
+      id,
+      name,
+      image: categoryImagePreview || '/products/combo.svg',
+      count: editingCategory ? editingCategory.count : 0,
+    };
+    if (editingCategory) {
+      products.forEach((p) => {
+        if (p.category === editingCategory.id) {
+          onUpdateProduct({ ...p, categoryName: name });
+        }
+      });
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? updated : c))
+      );
+      showFeedback(`Category "${name}" updated.`);
+    } else {
+      setCategories((prev) => [...prev, updated]);
+      showFeedback(`Category "${name}" added.`);
+    }
+    handleCloseCategoryModal();
+  };
+
+  const handleDeleteCategory = (id) => {
+    if (!confirm('Delete this category? Products using it will keep their category reference.')) return;
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+    showFeedback('Category deleted.');
   };
 
   // Preset image choices
@@ -872,6 +941,26 @@ export default function AdminView({
             }}
           >
             <Truck size={16} /> Store Orders &amp; Waybill Tracking ({orders.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('categories')}
+            style={{
+              padding: '9px 20px',
+              borderRadius: 8,
+              fontSize: '0.88rem',
+              fontWeight: 800,
+              border: 'none',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              background: activeTab === 'categories' ? '#0C6837' : 'var(--surface-card)',
+              color: activeTab === 'categories' ? '#FFFFFF' : 'var(--text-body)',
+              boxShadow: activeTab === 'categories' ? '0 2px 8px rgba(12,104,55,0.25)' : 'none'
+            }}
+          >
+            <Layers size={16} /> Categories ({categories.length})
           </button>
 
           <button
@@ -1649,6 +1738,292 @@ export default function AdminView({
                 </tbody>
               </table>
             </div>
+          </div>
+        )}
+
+        {/* TAB 5: CATEGORY MANAGEMENT */}
+        {activeTab === 'categories' && (
+          <div className="form-card" style={{ padding: 0 }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: 20,
+                borderBottom: '1px solid var(--border-light)',
+                background: 'var(--surface-card)',
+                borderRadius: '14px 14px 0 0',
+              }}
+            >
+              <div>
+                <h3 className="form-title" style={{ margin: 0, fontSize: '1.25rem' }}>
+                  Category Management
+                </h3>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                  Add, edit and picture categories for your foodstuffs store.
+                </p>
+              </div>
+              <button
+                className="btn-primary-pill"
+                onClick={() => handleOpenCategoryModal()}
+                style={{ padding: '8px 16px', fontSize: '0.85rem' }}
+              >
+                <Plus size={16} style={{ marginRight: 6 }} /> Add Category
+              </button>
+            </div>
+
+            <div style={{ padding: 20 }}>
+              {categories.length === 0 ? (
+                <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 40 }}>
+                  No categories yet. Add your first category above.
+                </p>
+              ) : (
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                    gap: 16,
+                  }}
+                >
+                  {categories.map((cat) => (
+                    <div
+                      key={cat.id}
+                      style={{
+                        background: '#FFF',
+                        border: '1px solid var(--border-light)',
+                        borderRadius: 12,
+                        padding: 16,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        textAlign: 'center',
+                        position: 'relative',
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 72,
+                          height: 72,
+                          borderRadius: 10,
+                          background: 'var(--surface-subtle)',
+                          border: '1px solid var(--border-light)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginBottom: 12,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <img
+                          src={cat.image}
+                          alt={cat.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { e.target.src = '/products/combo.svg'; }}
+                        />
+                      </div>
+                      <div
+                        style={{
+                          fontWeight: 700,
+                          color: 'var(--text-heading)',
+                          fontSize: '0.95rem',
+                          marginBottom: 6,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {cat.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: '0.78rem',
+                          color: 'var(--text-muted)',
+                          marginBottom: 14,
+                        }}
+                      >
+                        {cat.count} product{cat.count === 1 ? '' : 's'}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => handleOpenCategoryModal(cat)}
+                          style={{
+                            flex: 1,
+                            background: 'transparent',
+                            border: '1px solid var(--border-light)',
+                            color: 'var(--text-heading)',
+                            padding: '6px 10px',
+                            borderRadius: 8,
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCategory(cat.id)}
+                          style={{
+                            flex: 1,
+                            background: 'transparent',
+                            border: '1px solid var(--border-light)',
+                            color: 'var(--text-danger)',
+                            padding: '6px 10px',
+                            borderRadius: 8,
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Category Add / Edit Modal */}
+        {showCategoryModal && (
+          <div
+            style={{
+              background: '#FFF',
+              borderRadius: 16,
+              maxWidth: 480,
+              width: '100%',
+              maxHeight: '85vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                padding: 20,
+                borderBottom: '1px solid var(--border-light)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', color: '#0C6837', letterSpacing: '0.08em' }}>
+                  {editingCategory ? 'Edit Category' : 'Add New Category'}
+                </div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-heading)', marginTop: 2 }}>
+                  {editingCategory ? editingCategory.name : 'New category'}
+                </div>
+              </div>
+              <button
+                onClick={handleCloseCategoryModal}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  fontSize: 24,
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  lineHeight: 1,
+                  padding: 0,
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCategory} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', flex: 1 }}>
+              <div className="form-field">
+                <label className="form-label">Category Name</label>
+                <input
+                  name="categoryName"
+                  className="form-input"
+                  autoFocus
+                  defaultValue={editingCategory ? editingCategory.name : ''}
+                  placeholder="e.g. Grains, Flours &amp; Swallows"
+                />
+              </div>
+
+              <div className="form-field">
+                <label className="form-label">Category Picture</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCategoryImageChange}
+                    style={{ fontSize: '0.8rem', color: 'var(--text-body)' }}
+                  />
+                  <div
+                    style={{
+                      width: 110,
+                      height: 110,
+                      borderRadius: 12,
+                      background: 'var(--surface-subtle)',
+                      border: '2px dashed var(--border-light)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {categoryImagePreview ? (
+                      <img src={categoryImagePreview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', textAlign: 'center' }}>
+                        <ImageIcon size={24} style={{ marginBottom: 4 }} /><br />
+                        No image chosen
+                      </div>
+                    )}
+                  </div>
+                  {categoryImagePreview && (
+                    <button
+                      type="button"
+                      onClick={() => setCategoryImagePreview('')}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-danger)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        marginTop: 4,
+                        alignSelf: 'flex-start',
+                      }}
+                    >
+                      Remove image
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 8, display: 'flex', gap: 10 }}>
+                <button
+                  type="submit"
+                  className="btn-primary-pill"
+                  style={{ flex: 1 }}
+                >
+                  {editingCategory ? 'Save Changes' : 'Create Category'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCloseCategoryModal}
+                  style={{
+                    flex: 1,
+                    background: 'transparent',
+                    border: '1px solid var(--border-light)',
+                    color: 'var(--text-body)',
+                    padding: '10px 16px',
+                    borderRadius: 10,
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         )}
 

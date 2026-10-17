@@ -1590,63 +1590,7 @@ export const PRODUCTS = [
   }
 ];
 
-export const INITIAL_ORDERS = [
-  {
-    id: 'CSF20250930',
-    date: 'Oct 14, 2026',
-    customer: 'Amaka Obi',
-    email: 'amaka.obi@gmail.com',
-    items: [
-      { id: 'pure-palm-oil', name: 'Pure Palm Oil (4 Litres Jerrycan)', price: 7800, quantity: 2, image: '/products/palmoil.svg' },
-      { id: 'white-garri-crisp', name: 'White Garri (Crisp & Sand-Free 10kg)', price: 8500, quantity: 1, image: '/products/garri.jpg' }
-    ],
-    total: 24100,
-    status: 'In Transit',
-    tracking: 'TRK-NG-849201',
-    paymentMethod: 'Bank Transfer (Moniepoint)'
-  },
-  {
-    id: 'CSF20250931',
-    date: 'Oct 13, 2026',
-    customer: 'Emeka Nwosu',
-    email: 'emeka.nwosu@yahoo.com',
-    items: [
-      { id: 'food-combo-70k', name: 'Food Combo of 70k (Family Starter Mega Pack)', price: 70000, quantity: 1, image: '/products/combo.svg' }
-    ],
-    total: 73500,
-    status: 'Processing',
-    tracking: 'TRK-NG-721094',
-    paymentMethod: 'Bank Transfer (Moniepoint)'
-  },
-  {
-    id: 'CSF20250932',
-    date: 'Oct 11, 2026',
-    customer: 'Fatima Aliyu',
-    email: 'fatima.aliyu@outlook.com',
-    items: [
-      { id: 'dates-powder', name: 'Dates Powder (100% Pure Dabino)', price: 3500, quantity: 3, image: '/products/dates.svg' },
-      { id: 'tigernuts-seed', name: 'Tigernuts Seed (Cleaned Dried Aya)', price: 3000, quantity: 2, image: '/products/tigernut.svg' }
-    ],
-    total: 18000,
-    status: 'Delivered',
-    tracking: 'TRK-NG-390184',
-    paymentMethod: 'Card (Paystack)'
-  },
-  {
-    id: 'CSF20250933',
-    date: 'Oct 09, 2026',
-    customer: 'Chinedu Eze',
-    email: 'chinedu.eze@gmail.com',
-    items: [
-      { id: 'tubers-of-yams', name: 'Tubers of Yams (3 Giant Abuja Tubers)', price: 9500, quantity: 2, image: '/products/yam.svg' },
-      { id: 'ador-ogbonno-seeds', name: 'Ador Ogbonno Seeds (High-Draw Wild Bush Mango)', price: 6800, quantity: 1, image: '/products/ogbono.svg' }
-    ],
-    total: 27300,
-    status: 'Delivered',
-    tracking: 'TRK-NG-552910',
-    paymentMethod: 'Bank Transfer (Moniepoint)'
-  }
-];
+export const INITIAL_ORDERS = [];
 
 export const PROMO_CODES = {
   CHY10: { type: 'percent', value: 10, label: '10% Discount on Selected Staples' },
