@@ -8,11 +8,13 @@ import {
   Building,
   DollarSign,
   PackageCheck,
-  FileDown
+  FileDown,
+  Share2,
+  Download
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { STORE_INFO } from '../data/products';
-import { downloadInvoicePdf } from '../utils/invoice';
+import { buildInvoicePdf } from '../utils/invoice';
 
 export default function CheckoutView({
   cartItems,
@@ -37,6 +39,8 @@ export default function CheckoutView({
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [invoiceBlobUrl, setInvoiceBlobUrl] = useState(null);
 
   const subtotal = cartItems.reduce((acc, it) => acc + it.price * it.quantity, 0);
   const deliveryCost = formData.deliveryMethod === 'express' ? 3500 : 1500;
@@ -74,9 +78,13 @@ export default function CheckoutView({
       setCompletedOrder(orderObj);
       onOrderPlaced(orderObj);
       try {
-        downloadInvoicePdf({ order: orderObj, customer: formData, subtotal, deliveryCost: subtotal > 0 ? deliveryCost : 0, total });
+        const doc = buildInvoicePdf({ order: orderObj, customer: formData, subtotal, deliveryCost: subtotal > 0 ? deliveryCost : 0, total });
+        const blob = doc.output('blob');
+        const url = URL.createObjectURL(blob);
+        setInvoiceBlobUrl(url);
+        setShowInvoiceModal(true);
       } catch (err) {
-        console.warn('Invoice auto-download failed:', err);
+        console.warn('Invoice generation failed:', err);
       }
       onClearCart();
       setStep(3);
@@ -97,6 +105,7 @@ export default function CheckoutView({
   // STEP 3: Order Confirmation Screen
   if (step === 3 && completedOrder) {
     return (
+      <>
       <div className="section-pad">
         <div className="section-container" style={{ maxWidth: 650 }}>
           <div
@@ -165,7 +174,7 @@ export default function CheckoutView({
                 className="btn-primary-pill"
                 onClick={() => {
                   try {
-                    downloadInvoicePdf({
+                    const doc = buildInvoicePdf({
                       order: completedOrder,
                       customer: {
                         fullName: completedOrder.customer,
@@ -181,6 +190,10 @@ export default function CheckoutView({
                       deliveryCost: completedOrder.deliveryCost,
                       total: completedOrder.total
                     });
+                    const blob = doc.output('blob');
+                    const url = URL.createObjectURL(blob);
+                    setInvoiceBlobUrl(url);
+                    setShowInvoiceModal(true);
                   } catch (err) {
                     console.warn('Invoice download failed:', err);
                   }
@@ -206,10 +219,224 @@ export default function CheckoutView({
           </div>
         </div>
       </div>
+
+    {/* Invoice Modal */}
+    {showInvoiceModal && completedOrder && (
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.7)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+          backdropFilter: 'blur(4px)'
+        }}
+      >
+        <div
+          style={{
+            background: '#FFF',
+            borderRadius: 20,
+            maxWidth: 720,
+            width: '100%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            overflow: 'hidden'
+          }}
+        >
+          <div
+            style={{
+              background: 'var(--surface-green-tint)',
+              padding: 20,
+              borderBottom: '1px solid var(--border-light)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: '#0C6837',
+                  color: '#FFF',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 18
+                }}
+              >
+                🧾
+              </span>
+              <div>
+                <div style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', color: '#0C6837', letterSpacing: '0.08em' }}>
+                  Order Invoice
+                </div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-heading)' }}>
+                  #{completedOrder.id}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setShowInvoiceModal(false);
+                if (invoiceBlobUrl) URL.revokeObjectURL(invoiceBlobUrl);
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                fontSize: 24,
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                lineHeight: 1,
+                padding: 0
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          <div style={{ padding: 24, overflowY: 'auto', flex: 1 }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 16,
+                marginBottom: 20,
+                fontSize: '0.85rem'
+              }}
+            >
+              <div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Customer
+                </div>
+                <div style={{ color: 'var(--text-heading)', fontWeight: 600 }}>{completedOrder.customer}</div>
+                <div style={{ color: 'var(--text-body)', marginTop: 4 }}>{completedOrder.phone}</div>
+                <div style={{ color: 'var(--text-body)', marginTop: 4 }}>{completedOrder.email}</div>
+              </div>
+              <div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Order Details
+                </div>
+                <div style={{ color: 'var(--text-heading)', fontWeight: 600 }}>
+                  {completedOrder.paymentMethod}
+                </div>
+                <div style={{ color: 'var(--text-body)', marginTop: 4 }}>
+                  {completedOrder.deliveryMethod === 'express' ? 'Express Delivery' : 'Standard Delivery'}
+                </div>
+                <div style={{ color: 'var(--text-body)', marginTop: 4 }}>
+                  Tracking: {completedOrder.tracking}
+                </div>
+              </div>
+              <div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Total
+                </div>
+                <div style={{ color: 'var(--text-green)', fontWeight: 800, fontSize: '1.2rem' }}>
+                  ₦{completedOrder.total.toLocaleString()}
+                </div>
+              </div>
+              <div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                  Date
+                </div>
+                <div style={{ color: 'var(--text-heading)', fontWeight: 600 }}>{completedOrder.date}</div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                border: '1px solid var(--border-light)',
+                borderRadius: 12,
+                overflow: 'hidden',
+                background: '#FFF',
+                minHeight: 500
+              }}
+            >
+              {invoiceBlobUrl ? (
+                <>
+                  <div style={{ padding: 12, background: 'var(--surface-subtle)', fontSize: '0.8rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-light)' }}>
+                    📄 Invoice Preview (scroll to view full document)
+                  </div>
+                  <iframe
+                    src={invoiceBlobUrl}
+                    style={{ width: '100%', height: 420, border: 'none', display: 'block' }}
+                    title="Invoice PDF"
+                  />
+                </>
+              ) : (
+                <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Loading invoice preview...
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Modal Footer: Download + WhatsApp Share */}
+          <div
+            style={{
+              padding: 20,
+              borderTop: '1px solid var(--border-light)',
+              display: 'flex',
+              gap: 12,
+              justifyContent: 'center',
+              background: 'var(--surface-subtle)'
+            }}
+          >
+            <button
+              onClick={() => {
+                if (invoiceBlobUrl) {
+                  const link = document.createElement('a');
+                  link.href = invoiceBlobUrl;
+                  link.download = `Chygodwin-Invoice-${completedOrder.id}.pdf`;
+                  document.body.appendChild(link);
+                  link.click();
+                  document.body.removeChild(link);
+                }
+              }}
+              className="btn-primary-pill"
+              style={{ flex: 1 }}
+            >
+              <Download size={17} /> Download PDF
+            </button>
+            <button
+              onClick={() => {
+                const itemsText = (completedOrder.items || [])
+                  .map((it) => `• ${it.name} x${it.quantity} — ₦${(it.price * it.quantity).toLocaleString()}`)
+                  .join('%0A');
+                const message = `*New Order — ${STORE_INFO.name}*%0A%0AOrder: #${completedOrder.id}%0ACustomer: ${completedOrder.customer}%0APhone: ${completedOrder.phone}%0ATotal: ₦${completedOrder.total.toLocaleString()}%0APayment: ${completedOrder.paymentMethod}%0ADelivery: ${completedOrder.deliveryMethod === 'express' ? 'Express' : 'Standard'}%0A%0A*Items:*%0A${itemsText}%0A%0AInvoice PDF attached. Please confirm receipt.%0A%0A— ${STORE_INFO.name}`;
+                const waUrl = `https://wa.me/${STORE_INFO.whatsapp}?text=${encodeURIComponent(message)}`;
+                window.open(waUrl, '_blank');
+              }}
+              className="btn-primary-pill"
+              style={{
+                flex: 1,
+                background: '#25D366',
+                color: '#FFF',
+                border: 'none'
+              }}
+            >
+              <Share2 size={17} style={{ marginRight: 6 }} /> Share WhatsApp
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+      </>
+
     );
   }
 
-  return (
+    return (
     <div className="section-pad">
       <div className="section-container">
         {/* Step Indicator Bar */}

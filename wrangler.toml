@@ -1,18 +1,12 @@
-# Cloudflare Pages configuration for Chygodwin Foodstuffs
-# Local dev:  npx wrangler pages dev
-# Deploy:     npx wrangler pages deploy dist
-
-name = "chygodwinfoods"
+pages_build_output_dir = "dist"
+name = "main"
 compatibility_date = "2026-10-16"
+compatibility_flags = ["nodejs_compat"]
 
-[build]
-command = "npm run build"
-publish = "dist"
-
-[functions]
-directory = "functions"
+[vars]
+ADMIN_EMAIL = "chygodwinfoods@gmail.com"
+ADMIN_PASSWORD_HASH = "28d76493452119e0c8cfcb32a741f6e2:8521a9f6a51d6f3df863e60dd2e7c9920f7b51f618fdbc6c8b6111423302630fa067dbe7857ffd685908eb9a5d101c31bf89648f340c9e78cc1eb487ddb58668"
 
 [[kv_namespaces]]
 binding = "ADMIN_LIMITS_KV"
 id = "87b134c887d34afba5da0a26eb3c6a7b"
-preview_id = ""

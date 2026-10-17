@@ -42,7 +42,7 @@ export default function App() {
         const compact = products.map((p) => {
           // Keep path-based images, strip large data: URLs
           const img = typeof p.image === 'string' && p.image.startsWith('data:') && p.image.length > 80000
-            ? '/products/combo.jpg'
+            ? '/products/combo.svg'
             : p.image;
           return { ...p, image: img, thumbnails: [img] };
         });

@@ -133,7 +133,7 @@ export default function AdminView({
     stockCount: 25,
     inStock: true,
     badge: 'Popular',
-    image: '/products/combo.jpg',
+    image: '/products/combo.svg',
     description: '',
     features: '',
     ingredients: '',
@@ -150,38 +150,38 @@ export default function AdminView({
 
   // Preset image choices
   const imagePresets = [
-    { label: 'Food Combo', path: '/products/combo.jpg' },
-    { label: 'Palm Oil', path: '/products/palmoil.jpg' },
-    { label: 'Cooking Oil', path: '/products/oil-terra.jpg' },
-    { label: 'Rice Sack', path: '/products/rice.jpg' },
-    { label: 'Yam Tubers', path: '/products/yam.jpg' },
+    { label: 'Food Combo', path: '/products/combo.svg' },
+    { label: 'Palm Oil', path: '/products/palmoil.svg' },
+    { label: 'Cooking Oil', path: '/products/oil-terra.svg' },
+    { label: 'Rice Sack', path: '/products/rice.svg' },
+    { label: 'Yam Tubers', path: '/products/yam.svg' },
     { label: 'White Garri', path: '/products/garri.jpg' },
-    { label: 'Beans & Seeds', path: '/products/beans.jpg' },
-    { label: 'Dates / Superfood', path: '/products/dates.jpg' },
-    { label: 'Tigernuts', path: '/products/tigernut.jpg' },
-    { label: 'Soyabeans', path: '/products/soyabeans.jpg' },
-    { label: 'Cashew Nuts', path: '/products/cashew.jpg' },
-    { label: 'Smoked Fish', path: '/products/catfish.jpg' },
-    { label: 'Stockfish Head', path: '/products/stockfish.jpg' },
-    { label: 'Egusi Melon', path: '/products/egusi.jpg' },
-    { label: 'Ador Ogbonno', path: '/products/ogbono.jpg' },
-    { label: 'Crayfish', path: '/products/crayfish.jpg' },
-    { label: 'Spices & Pepper', path: '/products/spices.jpg' },
-    { label: 'Dried Leaves', path: '/products/leaves.jpg' },
-    { label: 'Spaghetti', path: '/products/spaghetti.jpg' },
-    { label: 'Tomatoes', path: '/products/tomatoes.jpg' },
-    { label: 'Yellow Pap', path: '/products/pap.jpg' },
-    { label: 'Special Flour', path: '/products/flour.jpg' },
-    { label: 'Crunchy Kulikuli', path: '/products/kulikuli.jpg' },
-    { label: 'Spicy Kilishi', path: '/products/kilishi.jpg' },
-    { label: 'Soft Kpomo', path: '/products/kpomo.jpg' },
-    { label: 'Pure Honey', path: '/products/honey.jpg' },
-    { label: 'Granola', path: '/products/granola.jpg' },
-    { label: 'Greek Yoghurt', path: '/products/yogurt.jpg' },
-    { label: 'Abacha Salad', path: '/products/abacha.jpg' },
-    { label: 'Onions Penter', path: '/products/onions.jpg' },
-    { label: 'Traditional Ogiri', path: '/products/ogiri.jpg' },
-    { label: 'Knorr Maggi', path: '/products/maggi.jpg' }
+    { label: 'Beans & Seeds', path: '/products/beans.svg' },
+    { label: 'Dates / Superfood', path: '/products/dates.svg' },
+    { label: 'Tigernuts', path: '/products/tigernut.svg' },
+    { label: 'Soyabeans', path: '/products/soyabeans.svg' },
+    { label: 'Cashew Nuts', path: '/products/cashew.svg' },
+    { label: 'Smoked Fish', path: '/products/catfish.svg' },
+    { label: 'Stockfish Head', path: '/products/stockfish.svg' },
+    { label: 'Egusi Melon', path: '/products/egusi.svg' },
+    { label: 'Ador Ogbonno', path: '/products/ogbono.svg' },
+    { label: 'Crayfish', path: '/products/crayfish.svg' },
+    { label: 'Spices & Pepper', path: '/products/spices.svg' },
+    { label: 'Dried Leaves', path: '/products/leaves.svg' },
+    { label: 'Spaghetti', path: '/products/spaghetti.svg' },
+    { label: 'Tomatoes', path: '/products/tomatoes.svg' },
+    { label: 'Yellow Pap', path: '/products/pap.svg' },
+    { label: 'Special Flour', path: '/products/flour.svg' },
+    { label: 'Crunchy Kulikuli', path: '/products/kulikuli.svg' },
+    { label: 'Spicy Kilishi', path: '/products/kilishi.svg' },
+    { label: 'Soft Kpomo', path: '/products/kpomo.svg' },
+    { label: 'Pure Honey', path: '/products/honey.svg' },
+    { label: 'Granola', path: '/products/granola.svg' },
+    { label: 'Greek Yoghurt', path: '/products/yogurt.svg' },
+    { label: 'Abacha Salad', path: '/products/abacha.svg' },
+    { label: 'Onions Penter', path: '/products/onions.svg' },
+    { label: 'Traditional Ogiri', path: '/products/ogiri.svg' },
+    { label: 'Knorr Maggi', path: '/products/maggi.svg' }
   ];
 
   // Handle Admin Login — verification is 100% server-side. One generic error
@@ -311,7 +311,7 @@ export default function AdminView({
   // Open edit modal
   const handleOpenEdit = (product) => {
     setEditingProduct(product);
-    const initialImg = product.image || '/products/combo.jpg';
+    const initialImg = product.image || '/products/combo.svg';
     setFormData({
       name: product.name,
       category: product.category,
