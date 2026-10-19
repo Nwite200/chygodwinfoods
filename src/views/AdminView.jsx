@@ -26,6 +26,121 @@ import {
 } from 'lucide-react';
 import { CATEGORIES, STORE_INFO } from '../data/products';
 
+const NIGERIAN_FOOD_KEYWORDS = {
+  'grains-tubers': ['rice', 'garri', 'yam', 'cassava', 'flour', 'semovita', 'swallow'],
+  'beans-seeds': ['beans', 'seed', 'egusi', 'melon', 'bambara', 'okpa', 'tigernut'],
+  'healthy-mixes': ['dates', 'powder', 'mix', 'snack', 'sweetener', 'dabino', 'cereal'],
+  'oils': ['oil', 'palm', 'groundnut oil', 'vegetable oil', 'jerrycan'],
+  'soups-ingredients': ['soup', 'egusi', 'crayfish', 'stockfish', 'seasoning', 'leaf'],
+  'spices-peppers': ['pepper', 'spice', 'chili', 'scotch bonnet', 'atinga', 'dry pepper'],
+  'fish-meat-condiments': ['fish', 'meat', 'kilishi', 'suya', 'stockfish', 'smoked'],
+  'food-combos': ['combo', 'combo pack', 'bundle', 'family pack', 'mega'],
+};
+
+const CATEGORY_DEFAULT_PRICE = {
+  'grains-tubers': 5500,
+  'beans-seeds': 4200,
+  'healthy-mixes': 3500,
+  'oils': 6500,
+  'soups-ingredients': 5000,
+  'spices-peppers': 2200,
+  'fish-meat-condiments': 7000,
+  'food-combos': 75000,
+};
+
+const CATEGORY_NAMES = Object.fromEntries(CATEGORIES.map((c) => [c.id, c.name]));
+
+function inferCategory(imageFile, prompt) {
+  const haystack = ((imageFile?.name || '') + ' ' + prompt).toLowerCase();
+  for (const [catId, keywords] of Object.entries(NIGERIAN_FOOD_KEYWORDS)) {
+    if (keywords.some((kw) => haystack.includes(kw.toLowerCase()))) {
+      return catId;
+    }
+  }
+  return 'grains-tubers';
+}
+
+function generateName(categoryId, prompt) {
+  const promptLower = prompt.toLowerCase();
+  const base = promptLower
+    .split(/[.,;/]/)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .find((s) => s.length > 2 && s.length < 60) || 'Premium Foodstuff Item';
+  const cleaned = base.replace(/^(i want|add|upload|sell|a |an |the )/i, '').trim();
+  const prefixes = {
+    'grains-tubers': 'Premium',
+    'beans-seeds': 'Select',
+    'healthy-mixes': 'Pure',
+    'oils': 'Pure',
+    'soups-ingredients': 'Fresh',
+    'spices-peppers': 'Ground',
+    'fish-meat-condiments': 'Smoked',
+    'food-combos': 'Mega',
+  };
+  const prefix = prefixes[categoryId] || 'Premium';
+  return `${prefix} ${cleaned.charAt(0).toUpperCase() + cleaned.slice(1)}`;
+}
+
+function generateDescription(categoryId, name, prompt) {
+  const descByCat = {
+    'grains-tubers': `Premium quality ${name.toLowerCase()}, carefully processed and cleaned for family cooking. A staple Nigerian foodstuff waybilled nationwide from Nkwelle Light of God estate.`,
+    'beans-seeds': `Freshly harvested ${name.toLowerCase()}, stone-free and naturally dried. Perfect for traditional Nigerian soups and meals.`,
+    'healthy-mixes': `100% natural ${name.toLowerCase()}, with no additives or preservatives. Rich in nutrients for health-conscious adults and children.`,
+    'oils': `Pure, unrefined ${name.toLowerCase()} for authentic Nigerian cooking. Packed to preserve freshness.`,
+    'soups-ingredients': `Essential soup ingredient ${name.toLowerCase()}, cleaned and ready to use. Brings authentic Nigerian flavor to your pot.`,
+    'spices-peppers': `Aromatic ground ${name.toLowerCase()} for seasoning your dishes. Intense flavor and vibrant color for Nigerian cuisine.`,
+    'fish-meat-condiments': `Smoked and dried ${name.toLowerCase()}, carefully preserved for long shelf life. Adds depth to soups and stews.`,
+    'food-combos': `Mega foodstuff combo pack ${name.toLowerCase()}. A complete bundle of essential Nigerian staples for family provisioning.`,
+  };
+  const base = descByCat[categoryId] || `Quality ${name.toLowerCase()} sourced from trusted farmers.`;
+  return prompt ? `${base} ${prompt.charAt(0).toUpperCase() + prompt.slice(1)}.` : base;
+}
+
+function generateFeatures(categoryId) {
+  const featuresByCat = {
+    'grains-tubers': ['Sand-free and stone-free guarantee', 'Carefully processed and packed', 'Waybilled nationwide', 'Fresh farm-sourced quality'],
+    'beans-seeds': ['100% natural without dilution', 'Produces authentic traditional texture', 'Rich nutty flavor', 'Carefully cleaned'],
+    'healthy-mixes': ['Zero additives or preservatives', 'Rich in natural vitamins and minerals', 'Safe for children and diabetics', 'Natural sweetener alternative'],
+    'oils': ['Pure and unrefined', 'Moisture-barrier packaging', 'Authentic cooking flavor', 'Long shelf life'],
+    'soups-ingredients': ['Cleaned and ready to use', 'Authentic Nigerian flavor', 'Hand-inspected quality', 'Sealed for long journeys'],
+    'spices-peppers': ['Intense flavor and aroma', 'Vibrant color', 'Ground for easy cooking', 'Freshly processed'],
+    'fish-meat-condiments': ['Smoked and dried for preservation', 'Adds depth to soups and stews', 'Long shelf life', 'Carefully preserved'],
+    'food-combos': ['Complete bundle of essentials', 'Family-sized value pack', 'Nationwide delivery', 'Mega value pricing'],
+  };
+  return featuresByCat[categoryId] || ['Fresh farm-sourced quality', 'Carefully cleaned & packed', 'Waybilled nationwide'];
+}
+
+function generateAIProductDraft(imageFile, prompt) {
+  const categoryId = inferCategory(imageFile, prompt);
+  const name = generateName(categoryId, prompt);
+  const basePrice = CATEGORY_DEFAULT_PRICE[categoryId] || 4000;
+  const price = basePrice + Math.floor(Math.random() * 1500);
+  const originalPrice = Math.round(price * 1.18);
+  const discount = `-${Math.round(((originalPrice - price) / originalPrice) * 100)}%`;
+
+  return {
+    name,
+    category: categoryId,
+    categoryName: CATEGORY_NAMES[categoryId] || 'Nigerian Foodstuff',
+    brand: 'Chygodwin Select',
+    price,
+    originalPrice,
+    discount,
+    stockCount: 20 + Math.floor(Math.random() * 40),
+    inStock: true,
+    badge: 'Popular',
+    image: imageFile ? URL.createObjectURL(imageFile) : '/products/combo.svg',
+    description: generateDescription(categoryId, name, prompt),
+    features: generateFeatures(categoryId, name),
+    ingredients: `100% Selected ${name}.`,
+    nutrition: 'Rich in natural vitamins, minerals, and healthy dietary energy.',
+    shippingInfo: 'Waybilled and delivered Nationwide and beyond from Nkwelle Light of God estate.',
+    rating: (4.5 + Math.random() * 0.5).toFixed(1),
+    reviewsCount: Math.floor(Math.random() * 30) + 5,
+  };
+}
+
 export default function AdminView({
   products = [],
   onAddProduct,
@@ -110,6 +225,15 @@ export default function AdminView({
   const [selectedCategory, setSelectedCategory] = useState('');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+
+  // AI-Powered Product Upload State
+  const [showAIUploadModal, setShowAIUploadModal] = useState(false);
+  const [aiImageFile, setAiImageFile] = useState(null);
+  const [aiImagePreview, setAiImagePreview] = useState('');
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiIsGenerating, setAiIsGenerating] = useState(false);
+  const [aiResult, setAiResult] = useState(null);
+  const [aiGenerateError, setAiGenerateError] = useState('');
 
   // Category Management
   const [categories, setCategories] = useState(CATEGORIES);
@@ -375,6 +499,78 @@ export default function AdminView({
     setFormData(initialForm);
     setImagePreview(initialForm.image);
     setShowUploadModal(true);
+  };
+
+  // Open AI-powered upload modal
+  const handleOpenAIUpload = () => {
+    setAiImageFile(null);
+    setAiImagePreview('');
+    setAiPrompt('');
+    setAiResult(null);
+    setAiGenerateError('');
+    setShowAIUploadModal(true);
+  };
+
+  // AI image change handler
+  const handleAiImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type || !file.type.startsWith('image/')) {
+      setAiGenerateError('Please upload an image file (PNG / JPEG / WEBP).');
+      return;
+    }
+    setAiImageFile(file);
+    setAiGenerateError('');
+    const reader = new FileReader();
+    reader.onload = () => setAiImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  // AI-powered product generation (client-side simulation)
+  const handleGenerateAIProduct = async () => {
+    if (!aiImageFile && !aiPrompt.trim()) {
+      setAiGenerateError('Please upload a product image and/or describe the product.');
+      return;
+    }
+    setAiIsGenerating(true);
+    setAiGenerateError('');
+
+    // Simulate AI processing delay
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    try {
+      const generated = generateAIProductDraft(aiImageFile, aiPrompt.trim());
+      setAiResult(generated);
+    } catch (err) {
+      setAiGenerateError('AI generation failed. Please try again or use manual upload.');
+      console.error('AI generation error:', err);
+    } finally {
+      setAiIsGenerating(false);
+    }
+  };
+
+  // Save AI-generated product to catalog
+  const handleSaveAIProduct = () => {
+    if (!aiResult) return;
+    const payload = {
+      ...aiResult,
+      id: `prod-ai-${Date.now()}`,
+      categoryName: CATEGORIES.find((c) => c.id === aiResult.category)?.name || 'Nigerian Foodstuff',
+      thumbnails: [aiResult.image],
+    };
+    if (onAddProduct) onAddProduct(payload);
+    showFeedback(`AI-uploaded "${payload.name}" added to store catalog!`);
+    setShowAIUploadModal(false);
+    setAiResult(null);
+  };
+
+  // Reset AI modal state
+  const handleResetAIUpload = () => {
+    setAiImageFile(null);
+    setAiImagePreview('');
+    setAiPrompt('');
+    setAiResult(null);
+    setAiGenerateError('');
   };
 
   // Open edit modal
@@ -1045,6 +1241,13 @@ export default function AdminView({
                   style={{ padding: '8px 16px', fontSize: '0.82rem' }}
                 >
                   <Plus size={15} /> Upload Product &amp; Picture
+                </button>
+                <button
+                  onClick={handleOpenAIUpload}
+                  className="btn-primary-pill"
+                  style={{ padding: '8px 16px', fontSize: '0.82rem', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', color: '#042416' }}
+                >
+                  <Upload size={15} style={{ strokeWidth: 2 }} /> AI-Powered Upload
                 </button>
 
                 {onResetProducts && (
@@ -2465,6 +2668,329 @@ export default function AdminView({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {showAIUploadModal && (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 3600,
+              padding: 16
+            }}
+            onClick={() => setShowAIUploadModal(false)}
+          >
+            <div
+              style={{
+                background: 'var(--surface-card)',
+                borderRadius: 20,
+                width: '100%',
+                maxWidth: 720,
+                maxHeight: '92vh',
+                overflowY: 'auto',
+                padding: 32,
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                position: 'relative'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowAIUploadModal(false)}
+                style={{
+                  position: 'absolute',
+                  top: 20,
+                  right: 20,
+                  background: 'var(--surface-raised)',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 36,
+                  height: 36,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <X size={18} style={{ color: 'var(--text-muted)' }} />
+              </button>
+
+              <div style={{ marginBottom: 20 }}>
+                <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#6366f1', textTransform: 'uppercase' }}>
+                  AI-Powered Product Uploader
+                </span>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-heading)', margin: '4px 0 0 0' }}>
+                  Generate Product Details with AI
+                </h2>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: 6 }}>
+                  Upload a product photo and describe it. The AI suggests a name, category, price,
+                  description, features and more. Review and edit before saving to your catalog.
+                </p>
+              </div>
+
+              {aiGenerateError && (
+                <div
+                  style={{
+                    background: '#FEE2E2',
+                    border: '1px solid #FCA5A5',
+                    color: '#B91C1C',
+                    borderRadius: 10,
+                    padding: '10px 14px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    marginBottom: 16,
+                    textAlign: 'left'
+                  }}
+                >
+                  {aiGenerateError}
+                </div>
+              )}
+
+              <form onSubmit={(e) => { e.preventDefault(); handleGenerateAIProduct(); }}>
+                <div
+                  style={{
+                    marginBottom: 20,
+                    background: 'var(--surface-subtle)',
+                    padding: 18,
+                    borderRadius: 14,
+                    border: `1px solid ${aiImageFile ? '#22C55E' : 'var(--border-light)'}`
+                  }}
+                >
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <Upload size={16} color="#6366f1" />
+                    <strong>Product Photo (PNG / JPEG / WEBP)</strong>
+                  </label>
+
+                  <div style={{ display: 'flex', gap: 18, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div
+                      style={{
+                        width: 110,
+                        height: 110,
+                        borderRadius: 12,
+                        background: 'var(--surface-card)',
+                        border: '2px solid var(--border-strong)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        padding: 6,
+                        flexShrink: 0
+                      }}
+                    >
+                      {aiImagePreview ? (
+                        <img
+                          src={aiImagePreview}
+                          alt="Product preview"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          onError={(e) => { e.target.src = '/hero.jpg'; }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>No Image</span>
+                      )}
+                    </div>
+
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDragging(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file && file.type?.startsWith('image/')) {
+                          setAiImageFile(file);
+                          const reader = new FileReader();
+                          reader.onload = () => setAiImagePreview(reader.result);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        minWidth: 240,
+                        padding: 16,
+                        border: `2px dashed ${aiImageFile ? '#22C55E' : '#6366f1'}`,
+                        borderRadius: 12,
+                        background: aiImageFile ? '#F0FDF4' : '#EFF6FF',
+                        textAlign: 'center',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#6366f1', fontWeight: 700 }}>
+                        {aiImageFile ? 'Image attached' : 'Drag & drop or click to browse'}
+                      </p>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.75rem', color: 'var(--text-light)' }}>
+                        AI reads the photo to suggest category & details
+                      </p>
+                    </div>
+                  </div>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    onChange={handleAiImageChange}
+                    style={{ display: 'none' }}
+                  />
+                </div>
+
+                <div className="form-field" style={{ marginBottom: 20 }}>
+                  <label className="form-label">Tell the AI about this product (optional)</label>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. Pure palm oil 5L jerrycan, stone-free egusi seeds, or premium white garri 10kg..."
+                    value={aiPrompt}
+                    onChange={(e) => setAiPrompt(e.target.value)}
+                    className="form-input"
+                    style={{ resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginBottom: 20 }}>
+                  <button
+                    type="button"
+                    onClick={handleResetAIUpload}
+                    disabled={aiIsGenerating}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: 9999,
+                      background: 'var(--surface-raised)',
+                      border: '1px solid var(--border-strong)',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      color: 'var(--text-body)',
+                      cursor: 'pointer',
+                      opacity: aiIsGenerating ? 0.6 : 1
+                    }}
+                  >
+                    Start Over
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={aiIsGenerating || (!aiImageFile && !aiPrompt.trim())}
+                    className="btn-primary-pill"
+                    style={{
+                      padding: '10px 28px',
+                      fontSize: '0.88rem',
+                      background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                      color: '#042416',
+                      opacity: (!aiImageFile && !aiPrompt.trim()) || aiIsGenerating ? 0.6 : 1
+                    }}
+                  >
+                    {aiIsGenerating ? (
+                      <>
+                        <RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} /> Generating…
+                      </>
+                    ) : (
+                      <><Upload size={16} /> Generate with AI</>
+                    )}
+                  </button>
+                </div>
+              </form>
+
+              {aiResult && (
+                <>
+                  <div style={{ marginBottom: 16 }}>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#22C55E', textTransform: 'uppercase' }}>
+                      AI-generated draft — review & edit before saving
+                    </span>
+                  </div>
+
+                  <div className="form-field" style={{ marginBottom: 12 }}>
+                    <label className="form-label">Product Name</label>
+                    <input
+                      type="text"
+                      value={aiResult.name}
+                      onChange={(e) => setAiResult({ ...aiResult, name: e.target.value })}
+                      className="form-input"
+                    />
+                  </div>
+
+                  <div className="form-grid-2" style={{ marginBottom: 12 }}>
+                    <div className="form-field">
+                      <label className="form-label">Category</label>
+                      <select
+                        value={aiResult.category}
+                        onChange={(e) => setAiResult({ ...aiResult, category: e.target.value })}
+                        className="form-input"
+                      >
+                        {CATEGORIES.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-field">
+                      <label className="form-label">Price (₦)</label>
+                      <input
+                        type="number"
+                        value={aiResult.price}
+                        onChange={(e) => setAiResult({ ...aiResult, price: Number(e.target.value) || 0 })}
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-field" style={{ marginBottom: 12 }}>
+                    <label className="form-label">Description</label>
+                    <textarea
+                      rows={3}
+                      value={aiResult.description}
+                      onChange={(e) => setAiResult({ ...aiResult, description: e.target.value })}
+                      className="form-input"
+                      style={{ resize: 'vertical' }}
+                    />
+                  </div>
+
+                  <div className="form-field" style={{ marginBottom: 20 }}>
+                    <label className="form-label">Key Features (one per line)</label>
+                    <textarea
+                      rows={3}
+                      value={aiResult.features.join('\n')}
+                      onChange={(e) =>
+                        setAiResult({
+                          ...aiResult,
+                          features: e.target.value.split('\n').map((f) => f.trim()).filter(Boolean)
+                        })
+                      }
+                      className="form-input"
+                      style={{ resize: 'vertical' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => setAiResult(null)}
+                      style={{
+                        padding: '10px 20px',
+                        borderRadius: 9999,
+                        background: 'var(--surface-raised)',
+                        border: '1px solid var(--border-strong)',
+                        fontSize: '0.88rem',
+                        fontWeight: 700,
+                        color: 'var(--text-body)',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Regenerate
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveAIProduct}
+                      className="btn-primary-pill"
+                      style={{ padding: '10px 28px', fontSize: '0.88rem' }}
+                    >
+                      Save to Catalog
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
