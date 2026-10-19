@@ -406,7 +406,7 @@ export default function App() {
     } catch (err) {
       console.error(err);
     }
-    showToast('Catalog reset to official 62 items');
+    showToast(`Catalog reset to official product list (${PRODUCTS.length} items)`);
   };
 
   const handleUpdateOrderStatus = (orderId, newStatus) => {

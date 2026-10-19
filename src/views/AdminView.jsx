@@ -111,8 +111,53 @@ function generateFeatures(categoryId) {
   return featuresByCat[categoryId] || ['Fresh farm-sourced quality', 'Carefully cleaned & packed', 'Waybilled nationwide'];
 }
 
-function generateAIProductDraft(imageFile, prompt) {
-  const categoryId = inferCategory(imageFile, prompt);
+function compressImageFile(file, maxDim = 800, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read image file.'));
+    reader.onload = (event) => {
+      const rawBase64 = event.target?.result;
+      if (!rawBase64 || typeof rawBase64 !== 'string') {
+        reject(new Error('Could not read image file.'));
+        return;
+      }
+      // If it's already small enough, keep as-is (preserves PNG transparency).
+      if (rawBase64.length < 120000) {
+        resolve(rawBase64);
+        return;
+      }
+      const img = new window.Image();
+      img.onload = () => {
+        try {
+          let w = img.width || maxDim;
+          let h = img.height || maxDim;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) { h = Math.round((h * maxDim) / w); w = maxDim; }
+            else { w = Math.round((w * maxDim) / h); h = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          // JPEG has no transparency — paint white background first.
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        } catch {
+          // Fallback: use raw data URL if canvas compression fails.
+          resolve(rawBase64);
+        }
+      };
+      img.onerror = () => resolve(rawBase64);
+      img.src = rawBase64;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function generateAIProductDraft(imageDataUrl, prompt, imageFileName = '') {
+  const categoryId = inferCategory({ name: imageFileName }, prompt);
   const name = generateName(categoryId, prompt);
   const basePrice = CATEGORY_DEFAULT_PRICE[categoryId] || 4000;
   const price = basePrice + Math.floor(Math.random() * 1500);
@@ -130,13 +175,13 @@ function generateAIProductDraft(imageFile, prompt) {
     stockCount: 20 + Math.floor(Math.random() * 40),
     inStock: true,
     badge: 'Popular',
-    image: imageFile ? URL.createObjectURL(imageFile) : '/products/combo.svg',
+    image: imageDataUrl || '/products/combo.svg',
     description: generateDescription(categoryId, name, prompt),
     features: generateFeatures(categoryId, name),
     ingredients: `100% Selected ${name}.`,
     nutrition: 'Rich in natural vitamins, minerals, and healthy dietary energy.',
     shippingInfo: 'Waybilled and delivered Nationwide and beyond from Nkwelle Light of God estate.',
-    rating: (4.5 + Math.random() * 0.5).toFixed(1),
+    rating: Math.round((4.5 + Math.random() * 0.5) * 10) / 10,
     reviewsCount: Math.floor(Math.random() * 30) + 5,
   };
 }
@@ -521,9 +566,13 @@ export default function AdminView({
     }
     setAiImageFile(file);
     setAiGenerateError('');
-    const reader = new FileReader();
-    reader.onload = () => setAiImagePreview(reader.result);
-    reader.readAsDataURL(file);
+    compressImageFile(file)
+      .then((dataUrl) => setAiImagePreview(dataUrl))
+      .catch(() => {
+        const reader = new FileReader();
+        reader.onload = () => setAiImagePreview(reader.result);
+        reader.readAsDataURL(file);
+      });
   };
 
   // AI-powered product generation (client-side simulation)
@@ -539,8 +588,19 @@ export default function AdminView({
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     try {
-      const generated = generateAIProductDraft(aiImageFile, aiPrompt.trim());
-      setAiResult(generated);
+      let imageDataUrl = aiImagePreview || '';
+      if (aiImageFile) {
+        try {
+          imageDataUrl = await compressImageFile(aiImageFile);
+          setAiImagePreview(imageDataUrl);
+        } catch (compressErr) {
+          console.warn('AI image compression failed, using preview instead:', compressErr);
+        }
+      }
+      const generated = generateAIProductDraft(imageDataUrl, aiPrompt.trim(), aiImageFile?.name || '');
+      let aiRating = Number(generated.rating);
+      aiRating = Number.isFinite(aiRating) ? Math.round(aiRating * 10) / 10 : 4.8;
+      setAiResult({ ...generated, rating: aiRating });
     } catch (err) {
       setAiGenerateError('AI generation failed. Please try again or use manual upload.');
       console.error('AI generation error:', err);
@@ -552,11 +612,26 @@ export default function AdminView({
   // Save AI-generated product to catalog
   const handleSaveAIProduct = () => {
     if (!aiResult) return;
+    if (!aiResult.name || !String(aiResult.name).trim()) {
+      setAiGenerateError('Please give the product a name before saving.');
+      return;
+    }
+    const priceNum = Number(aiResult.price);
+    if (!Number.isFinite(priceNum) || priceNum <= 0) {
+      setAiGenerateError('Please enter a valid price above ₦0 before saving.');
+      return;
+    }
+    const imageValue = typeof aiImagePreview === 'string' && aiImagePreview
+      ? aiImagePreview
+      : aiResult.image;
     const payload = {
       ...aiResult,
+      name: String(aiResult.name).trim(),
+      price: priceNum,
       id: `prod-ai-${Date.now()}`,
       categoryName: CATEGORIES.find((c) => c.id === aiResult.category)?.name || 'Nigerian Foodstuff',
-      thumbnails: [aiResult.image],
+      image: imageValue,
+      thumbnails: [imageValue],
     };
     if (onAddProduct) onAddProduct(payload);
     showFeedback(`AI-uploaded "${payload.name}" added to store catalog!`);
@@ -1253,7 +1328,7 @@ export default function AdminView({
                 {onResetProducts && (
                   <button
                     onClick={() => {
-                      if (confirm('Reset store catalog to the official 62 items list?')) {
+                      if (confirm('Reset store catalog to the official product list?')) {
                         onResetProducts();
                       }
                     }}
@@ -2804,9 +2879,13 @@ export default function AdminView({
                         const file = e.dataTransfer.files?.[0];
                         if (file && file.type?.startsWith('image/')) {
                           setAiImageFile(file);
-                          const reader = new FileReader();
-                          reader.onload = () => setAiImagePreview(reader.result);
-                          reader.readAsDataURL(file);
+                          compressImageFile(file)
+                            .then((dataUrl) => setAiImagePreview(dataUrl))
+                            .catch(() => {
+                              const reader = new FileReader();
+                              reader.onload = () => setAiImagePreview(reader.result);
+                              reader.readAsDataURL(file);
+                            });
                         }
                       }}
                       style={{
