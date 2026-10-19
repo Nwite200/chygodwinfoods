@@ -53,6 +53,37 @@ export default function App() {
     }
   }, [products]);
 
+  const [supabaseLoaded, setSupabaseLoaded] = useState(false);
+
+  // Load products from Supabase on mount
+  useEffect(() => {
+    if (!isSupabaseConfigured) { setSupabaseLoaded(true); return; }
+    (async () => {
+      try {
+        const { data, error } = await supabase.from('app_products').select('data');
+        if (error) { console.error('Supabase load error:', error); setSupabaseLoaded(true); return; }
+        if (data && data.length > 0) {
+          const remoteProducts = data.map((row) => row.data);
+          const remoteIds = new Set(remoteProducts.map((p) => p.id));
+          const merged = [...remoteProducts, ...PRODUCTS.filter((p) => !remoteIds.has(p.id))];
+          setProducts(merged);
+        }
+      } catch (err) { console.error('Supabase load error:', err); }
+      finally { setSupabaseLoaded(true); }
+    })();
+  }, []);
+
+  // Sync products to Supabase when they change
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabaseLoaded) return;
+    const timeout = setTimeout(() => {
+      const rows = products.map((p) => ({ id: p.id, data: p }));
+      supabase.from('app_products').upsert(rows)
+        .then(({ error }) => { if (error) console.error('Supabase sync error:', error); });
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, [products, supabaseLoaded]);
+
   // Cross-tab sync: listen for localStorage changes in other tabs/windows
   useEffect(() => {
     const handleStorageChange = (e) => {

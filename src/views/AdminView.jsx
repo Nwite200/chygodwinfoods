@@ -25,6 +25,7 @@ import {
   Layers
 } from 'lucide-react';
 import { CATEGORIES, STORE_INFO } from '../data/products';
+import { supabase } from '../supabase';
 
 const NIGERIAN_FOOD_KEYWORDS = {
   'grains-tubers': ['rice', 'garri', 'yam', 'cassava', 'flour', 'semovita', 'swallow'],
@@ -470,6 +471,54 @@ export default function AdminView({
       // ignore
     }
     showFeedback('You have logged out of the Admin Console.');
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Show a preview immediately from the local file
+    const localPreview = URL.createObjectURL(file);
+    setFormData((prev) => ({ ...prev, image: localPreview }));
+    setImagePreview(localPreview);
+
+    // Compress the image using canvas (max 800px wide, JPEG 70%)
+    const img = new Image();
+    img.src = localPreview;
+    await new Promise((resolve) => { img.onload = resolve; });
+
+    const canvas = document.createElement('canvas');
+    const maxW = 800;
+    const scale = Math.min(1, maxW / img.width);
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.7));
+    if (!blob) {
+      alert('Could not process image. Please try a different file.');
+      return;
+    }
+
+    // Upload to Supabase Storage
+    const fileName = `product-${Date.now()}.jpg`;
+    const { error: uploadError } = await supabase.storage
+      .from('product-images')
+      .upload(fileName, blob, { contentType: 'image/jpeg' });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      alert('Failed to upload image to storage: ' + uploadError.message);
+      return;
+    }
+
+    // Get the public URL and set it as the image
+    const { data: urlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(fileName);
+
+    setFormData((prev) => ({ ...prev, image: urlData.publicUrl }));
+    setImagePreview(urlData.publicUrl);
   };
 
   // Handle File Input Change (PNG / JPEG)
