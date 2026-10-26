@@ -177,7 +177,15 @@ export const supabase = {
   },
 };
 
+/** Named export for isSupabaseConfigured */
+export const isSupabaseConfigured = true;
+
+/** Initialize the app with Cloudflare Worker support */
+export function initCloudflareApp() {
+
 /**
+/** Named export for isSupabaseConfigured */
+export const isSupabaseConfigured = true;
  * Initialize the app with Cloudflare Worker support
  * Call this instead of the Supabase initialization
  */
