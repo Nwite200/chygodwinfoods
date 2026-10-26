@@ -7,5 +7,9 @@ binding = "DB"  # used in your code to refer to your database
 database_name = "chygodwinfoods"
 path = "./d1.sqlite"
 
+[env.production]
+ADMIN_EMAIL = "chygodwinfoods@gmail.com"
+ADMIN_PASSWORD_HASH = "a1cc34df791b1b48371292a73545297db5072e1ad90697f4a2a6d44f6783a5b9:35e2fa8261058af6d201246b009f4b96c768d7fedba4d8bf2942d2f472446ce6"
+
 [assets]
 directory = "./dist"
