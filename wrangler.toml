@@ -2,5 +2,10 @@ name = "chygodwinfoods"
 compatibility_date = "2026-10-12"
 compatibility_flags = ["nodejs_compat"]
 
+[d1]
+binding = "DB"  # used in your code to refer to your database
+database_name = "chygodwinfoods"
+path = "./d1.sqlite"
+
 [assets]
 directory = "./dist"
