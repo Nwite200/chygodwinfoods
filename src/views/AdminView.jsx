@@ -423,9 +423,9 @@ export default function AdminView({
     { label: 'Knorr Maggi', path: '/products/maggi.svg' }
   ];
 
-  // Handle Admin Login — verification is 100% server-side. One generic error
-  // for a wrong email and a wrong password; the lockout (5 fails / 15 min per
-  // IP + per email, persisted in Netlify Blobs) is enforced by the function.
+  // Handle Admin Login — server-side verification in production.
+  // In local dev (plain `npm run dev`), falls back to VITE_ADMIN_EMAIL +
+  // VITE_ADMIN_PASSWORD env vars when the /api/admin-login endpoint is unreachable.
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError('');
@@ -445,15 +445,31 @@ export default function AdminView({
           // ignore
         }
         setIsAuthenticated(true);
-        setAdminSessionEmail(data.email || '');
+        setAdminSessionEmail(data.email || authEmail);
         setAuthPassword('');
         showFeedback('Welcome, Admin! Management Console unlocked.');
         return;
       }
-      // 401 (bad credentials) and 429 (locked out) both come back as one
-      // safe-to-display message from the server.
       setAuthError(data?.error || 'Invalid email or password. Access denied.');
     } catch {
+      // ── Local dev fallback ─────────────────────────────────────────────────
+      // /api/admin-login is a Netlify function — it's not served by plain Vite.
+      // When the endpoint is unreachable, verify against env-var credentials so
+      // the admin panel works during local development.
+      const devEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
+      const devPassword = (import.meta.env.VITE_ADMIN_PASSWORD || '').trim();
+      if (
+        devEmail &&
+        devPassword &&
+        authEmail.trim().toLowerCase() === devEmail &&
+        authPassword === devPassword
+      ) {
+        setIsAuthenticated(true);
+        setAdminSessionEmail(devEmail);
+        setAuthPassword('');
+        showFeedback('Welcome, Admin! (Local dev mode — Console unlocked.)');
+        return;
+      }
       setAuthError('Could not reach the login service. Check your connection and try again.');
     } finally {
       setIsLoggingIn(false);
@@ -500,25 +516,27 @@ export default function AdminView({
       return;
     }
 
-    // Upload to Supabase Storage
+    // Upload to Cloudflare Worker (D1-backed API replacement for Supabase Storage)
     const fileName = `product-${Date.now()}.jpg`;
-    const { error: uploadError } = await supabase.storage
-      .from('product-images')
-      .upload(fileName, blob, { contentType: 'image/jpeg' });
+    const formData = new FormData();
+    formData.append('file', blob, fileName);
 
-    if (uploadError) {
+    try {
+      const response = await fetch(`${BASE_URL}/api/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to upload image');
+      }
+      const result = await response.json();
+      setFormData((prev) => ({ ...prev, image: result.publicUrl }));
+      setImagePreview(result.publicUrl);
+    } catch (uploadError) {
       console.error('Upload error:', uploadError);
-      alert('Failed to upload image to storage: ' + uploadError.message);
-      return;
+      alert('Failed to upload image: ' + uploadError.message);
     }
-
-    // Get the public URL and set it as the image
-    const { data: urlData } = supabase.storage
-      .from('product-images')
-      .getPublicUrl(fileName);
-
-    setFormData((prev) => ({ ...prev, image: urlData.publicUrl }));
-    setImagePreview(urlData.publicUrl);
   };
 
   // Handle File Input Change (PNG / JPEG)

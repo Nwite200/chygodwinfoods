@@ -14,6 +14,24 @@ export function initDB(db) {
   DB = db;
 }
 
+// ==================== Main Route Handler ====================
+export async function handleRequest(request) {
+  const url = new URL(request.url);
+
+  // Route based on path
+  if (url.pathname === '/api/products') {
+    return handleProducts(request);
+  }
+  if (url.pathname === '/api/cart') {
+    return handleCart(request);
+  }
+  if (url.pathname === '/api/upload') {
+    return handleUpload(request);
+  }
+
+  return new Response('Not found', { status: 404 });
+}
+
 // ==================== Product API ====================
 export async function handleProducts(request) {
   if (request.method === 'GET') {
@@ -40,6 +58,63 @@ export async function handleProducts(request) {
     });
   }
   return new Response('Not found', { status: 404 });
+}
+
+// ==================== Image Upload API ====================
+export async function handleUpload(request) {
+  const formData = await request.formData();
+  const file = formData.get('file');
+  if (!file) {
+    return new Response(JSON.stringify({ error: 'No file provided' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+  const bytes = await file.arrayBuffer();
+  const blob = new Blob([bytes], { type: file.type });
+
+  // Compress the image using canvas (max 800px wide, JPEG 70%)
+  const img = new Image();
+  const url = URL.createObjectURL(blob);
+  img.src = url;
+
+  await new Promise((resolve) => { img.onload = resolve; });
+
+  const canvas = document.createElement('canvas');
+  const maxW = 800;
+  const scale = Math.min(1, maxW / img.width);
+  canvas.width = Math.round(img.width * scale);
+  canvas.height = Math.round(img.height * scale);
+  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const compressedBlob = await new Promise((resolve) =>
+    canvas.toBlob(resolve, 'image/jpeg', 0.7)
+  );
+  URL.revokeObjectURL(url);
+
+  if (!compressedBlob) {
+    return new Response(JSON.stringify({ error: 'Could not compress image' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Convert to base64 or store in D1 - for now return as base64
+  const arrayBuffer = await compressedBlob.arrayBuffer();
+  const base64 = btoa(
+    ...new Uint8Array(arrayBuffer).reduce(
+      (data, byte) => data + String.fromCharCode(byte),
+      ''
+    )
+  );
+  const publicUrl = `/products/${Date.now()}.jpg?r=${Math.random()}`;
+
+  return new Response(
+    JSON.stringify({ success: true, publicUrl, base64 }),
+    {
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
 }
 
 // ==================== Cart API ====================

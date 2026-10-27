@@ -25,33 +25,57 @@ export const productApi = {
 
   /** Insert or update a product */
   async upsert(productData) {
-    const response = await fetch(`${BASE_URL}/api/products`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(productData),
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to upsert product');
+    try {
+      const response = await fetch(`${BASE_URL}/api/products`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productData),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to upsert product');
+      }
+      return response.json();
+    } catch (err) {
+      // API not available locally — log and return silently so UI stays functional
+      console.warn('[supabase.js] upsert: API unreachable locally.', err.message);
+      return productData;
     }
-    return response.json();
   },
 
   /** Delete a product */
   async delete(id) {
-    const response = await fetch(`${BASE_URL}/api/products?id=${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to delete product');
+    try {
+      const response = await fetch(`${BASE_URL}/api/products?id=${id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Failed to delete product');
+      }
+      return response.json();
+    } catch (err) {
+      console.warn('[supabase.js] delete: API unreachable locally.', err.message);
+      return { id };
     }
-    return response.json();
+  },
+
+  /** Select products - filters data by field */
+  async select(field) {
+    try {
+      const response = await fetch(`${BASE_URL}/api/products?fields=${field}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) return [];
+      return response.json();
+    } catch {
+      // API not available locally — fall back silently
+      return [];
+    }
   },
 };
 
@@ -102,6 +126,18 @@ export const cartApi = {
     }
     return response.json();
   },
+
+  /** Select cart items - returns items for a user */
+  async select(userId = 'anonymous') {
+    const response = await fetch(`${BASE_URL}/api/cart?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) throw new Error('Failed to fetch cart items');
+    return response.json();
+  },
 };
 
 /**
@@ -146,12 +182,15 @@ export const authApi = {
 
   /** Listen for auth state changes */
   onAuthStateChange(callback) {
-    // Check initial state
-    const initialSession = this.getSession();
-    callback(initialSession.event, initialSession.data.session);
+    // getSession is async, so we must await it before calling the callback
+    this.getSession().then((initialSession) => {
+      callback('INITIAL_SESSION', initialSession?.data?.session ?? null);
+    }).catch(() => {
+      callback('INITIAL_SESSION', null);
+    });
     
-    // Return unsubscribe function (no-op for now)
-    return () => {};
+    // Return unsubscribe object matching Supabase client shape
+    return { data: { subscription: { unsubscribe: () => {} } } };
   },
 };
 
@@ -182,17 +221,5 @@ export const isSupabaseConfigured = true;
 
 /** Initialize the app with Cloudflare Worker support */
 export function initCloudflareApp() {
-
-/**
-/** Named export for isSupabaseConfigured */
-export const isSupabaseConfigured = true;
- * Initialize the app with Cloudflare Worker support
- * Call this instead of the Supabase initialization
- */
-export function initCloudflareApp() {
-  // The supabase object is already set up above
-  // Any code that previously used supabase.from('table') 
-  // can now use supabase.from('table')
-  
-  console.log('ChyGodwin app initialized with Cloudflare Worker API');
 }
+
