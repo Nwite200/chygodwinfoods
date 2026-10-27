@@ -1,22 +1,15 @@
 name = "chygodwinfoods"
-compatibility_date = "2026-10-12"
-compatibility_flags = ["nodejs_compat"]
+main = "worker.js"
+compatibility_date = "2026-10-01"
 
-[main]
-script = "worker.js"
-
-[d1]
-binding = "DB"
-database_name = "chygodwinfoods"
-path = "./d1.sqlite"
-
-[env.production]
-ADMIN_EMAIL = "chygodwinfoodstuffs@gmail.com"
-ADMIN_PASSWORD_HASH = "a1cc34df791b1b48371292a73545297db5072e1ad90697f4a2a6d44f6783a5b9:35e2fa8261058af6d201246b009f4b96c768d7fedba4d8bf2942d2f472446ce6"
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
 
 [[kv_namespaces]]
 binding = "ADMIN_LIMITS_KV"
 id = "87b134c887d34afba5da0a26eb3c6a7b"
 
-[assets]
-directory = "./dist"
+[vars]
+ADMIN_EMAIL = "chygodwinfoodstuffs@gmail.com"
