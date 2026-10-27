@@ -25,7 +25,7 @@ import {
   Layers
 } from 'lucide-react';
 import { CATEGORIES, STORE_INFO } from '../data/products';
-import { supabase } from '../supabase';
+import { supabase, API_BASE_URL, adminAuthHeaders } from '../supabase';
 
 const NIGERIAN_FOOD_KEYWORDS = {
   'grains-tubers': ['rice', 'garri', 'yam', 'cassava', 'flour', 'semovita', 'swallow'],
@@ -198,10 +198,10 @@ export default function AdminView({
   onNavigate
 }) {
   // Authentication State
-  // No credentials live in the browser. Login is verified server-side by
-  // netlify/functions/admin-login.mjs (scrypt + 5-fail/15-min IP & email lockout
-  // persisted in Netlify Blobs) via POST /api/admin-login.
-  const LOGIN_ENDPOINT = '/api/admin-login';
+  // No credentials live in the browser. Login is verified server-side by the
+  // Cloudflare Worker (worker.js: scrypt + 5-fail/15-min IP lockout in KV)
+  // via POST /api/admin-login, which returns an HMAC-signed token.
+  const LOGIN_ENDPOINT = `${API_BASE_URL}/api/admin-login`;
   const SESSION_KEY = 'chygodwin_admin_token';
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sessionChecking, setSessionChecking] = useState(true);
@@ -423,9 +423,7 @@ export default function AdminView({
     { label: 'Knorr Maggi', path: '/products/maggi.svg' }
   ];
 
-  // Handle Admin Login — server-side verification in production.
-  // In local dev (plain `npm run dev`), falls back to VITE_ADMIN_EMAIL +
-  // VITE_ADMIN_PASSWORD env vars when the /api/admin-login endpoint is unreachable.
+  // Handle Admin Login — always verified server-side by the Worker.
   const handleLogin = async (e) => {
     e.preventDefault();
     setAuthError('');
@@ -452,25 +450,9 @@ export default function AdminView({
       }
       setAuthError(data?.error || 'Invalid email or password. Access denied.');
     } catch {
-      // ── Local dev fallback ─────────────────────────────────────────────────
-      // /api/admin-login is a Netlify function — it's not served by plain Vite.
-      // When the endpoint is unreachable, verify against env-var credentials so
-      // the admin panel works during local development.
-      const devEmail = (import.meta.env.VITE_ADMIN_EMAIL || '').trim().toLowerCase();
-      const devPassword = (import.meta.env.VITE_ADMIN_PASSWORD || '').trim();
-      if (
-        devEmail &&
-        devPassword &&
-        authEmail.trim().toLowerCase() === devEmail &&
-        authPassword === devPassword
-      ) {
-        setIsAuthenticated(true);
-        setAdminSessionEmail(devEmail);
-        setAuthPassword('');
-        showFeedback('Welcome, Admin! (Local dev mode — Console unlocked.)');
-        return;
-      }
-      setAuthError('Could not reach the login service. Check your connection and try again.');
+      // No client-side password fallback: anything in VITE_* is shipped to every
+      // visitor. For local dev, run `npm run api` (wrangler dev) alongside Vite.
+      setAuthError('Could not reach the login service. Start the API with `npm run api` (local) or check your connection.');
     } finally {
       setIsLoggingIn(false);
     }
@@ -522,8 +504,9 @@ export default function AdminView({
     formData.append('file', blob, fileName);
 
     try {
-      const response = await fetch(`${BASE_URL}/api/upload`, {
+      const response = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
+        headers: adminAuthHeaders(),
         body: formData,
       });
       if (!response.ok) {

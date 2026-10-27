@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "api": "wrangler dev",
+    "db:local": "wrangler d1 migrations apply chygodwinfoods --local",
+    "setup:dev-vars": "node scripts/setup-dev-vars.mjs",
+    "check:login": "node scripts/check-login.mjs",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"

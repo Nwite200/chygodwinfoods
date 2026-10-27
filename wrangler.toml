@@ -1,15 +1,30 @@
 name = "chygodwinfoods"
 main = "worker.js"
 compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
 
 [assets]
 directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
+# Always run the Worker for API calls instead of the SPA fallback
+run_worker_first = ["/api/*"]
 
 [[kv_namespaces]]
 binding = "ADMIN_LIMITS_KV"
 id = "87b134c887d34afba5da0a26eb3c6a7b"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "chygodwinfoods"
+# Local `wrangler dev` works with this placeholder. Before deploying, run
+# `npx wrangler d1 create chygodwinfoods` and paste the real id here.
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
 [vars]
-ADMIN_EMAIL = "chygodwinfoodstuffs@gmail.com"
+ADMIN_EMAIL = "chygodwinfoods@gmail.com"
+
+# Secrets are NOT stored here. Set them with:
+#   npx wrangler secret put ADMIN_PASSWORD_HASH
+#   npx wrangler secret put TOKEN_SECRET

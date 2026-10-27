@@ -1,274 +1,360 @@
-// Cloudflare Worker - ChyGodwin Foods API
-// Replace Supabase with D1 Workers and API routes
+// ChyGodwin Foods API - Cloudflare Worker (D1 + KV + static assets)
+//
+// Secrets (never commit): ADMIN_PASSWORD_HASH, TOKEN_SECRET
+// Vars (wrangler.toml):   ADMIN_EMAIL
+// Bindings:               DB (D1), ADMIN_LIMITS_KV (KV), ASSETS (static site)
 
-import { createClient } from '@supabase/supabase-js';
+import { scrypt, timingSafeEqual, createHmac } from 'node:crypto';
 
-// ==================== Configuration ====================
-const ADMIN_EMAIL = 'chygodwinfoods@gmail.com';
-const ADMIN_PASSWORD_HASH = 'a1cc34df791b1b48371292a73545297db5072e1ad90697f4a2a6d44f6783a5b9:35e2fa8261058af6d201246b009f4b96c768d7fedba4d8bf2942d2f472446ce6';
+// ==================== Helpers ====================
+const TOKEN_TTL_MS = 8 * 60 * 60 * 1000; // 8 hours
+const MAX_FAILED_LOGINS = 5;
+const LOCKOUT_SECONDS = 15 * 60;
+const MAX_IMAGE_BYTES = 1.5 * 1024 * 1024;
 
-// ==================== D1 Database ====================
-let DB;
-
-export function initDB(db) {
-  DB = db;
-}
-
-// ==================== Main Route Handler ====================
-export async function handleRequest(request) {
-  const url = new URL(request.url);
-
-  // Route based on path
-  if (url.pathname === '/api/products') {
-    return handleProducts(request);
-  }
-  if (url.pathname === '/api/cart') {
-    return handleCart(request);
-  }
-  if (url.pathname === '/api/upload') {
-    return handleUpload(request);
-  }
-
-  return new Response('Not found', { status: 404 });
-}
-
-// ==================== Product API ====================
-export async function handleProducts(request) {
-  if (request.method === 'GET') {
-    const { results } = await DB.prepare(
-      'SELECT id, data FROM app_products'
-    ).all();
-    return new Response(JSON.stringify(results.map(row => row.data)), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } else if (request.method === 'POST') {
-    const productData = await request.json();
-    const id = crypto.randomUUID();
-    const { error } = await DB.prepare(
-      `INSERT INTO app_products (id, data) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = CURRENT_TIMESTAMP`
-    ).bind(id, JSON.stringify(productData)).run();
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  return new Response('Not found', { status: 404 });
-}
-
-// ==================== Image Upload API ====================
-export async function handleUpload(request) {
-  const formData = await request.formData();
-  const file = formData.get('file');
-  if (!file) {
-    return new Response(JSON.stringify({ error: 'No file provided' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  const bytes = await file.arrayBuffer();
-  const blob = new Blob([bytes], { type: file.type });
-
-  // Compress the image using canvas (max 800px wide, JPEG 70%)
-  const img = new Image();
-  const url = URL.createObjectURL(blob);
-  img.src = url;
-
-  await new Promise((resolve) => { img.onload = resolve; });
-
-  const canvas = document.createElement('canvas');
-  const maxW = 800;
-  const scale = Math.min(1, maxW / img.width);
-  canvas.width = Math.round(img.width * scale);
-  canvas.height = Math.round(img.height * scale);
-  canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-
-  const compressedBlob = await new Promise((resolve) =>
-    canvas.toBlob(resolve, 'image/jpeg', 0.7)
-  );
-  URL.revokeObjectURL(url);
-
-  if (!compressedBlob) {
-    return new Response(JSON.stringify({ error: 'Could not compress image' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Convert to base64 or store in D1 - for now return as base64
-  const arrayBuffer = await compressedBlob.arrayBuffer();
-  const base64 = btoa(
-    ...new Uint8Array(arrayBuffer).reduce(
-      (data, byte) => data + String.fromCharCode(byte),
-      ''
-    )
-  );
-  const publicUrl = `/products/${Date.now()}.jpg?r=${Math.random()}`;
-
-  return new Response(
-    JSON.stringify({ success: true, publicUrl, base64 }),
-    {
-      headers: { 'Content-Type': 'application/json' },
-    }
-  );
-}
-
-// ==================== Cart API ====================
-export async function handleCart(request) {
-  const userId = 'anonymous'; // In real app, get from auth
-
-  if (request.method === 'GET') {
-    const { results } = await DB.prepare(
-      'SELECT * FROM cart_items WHERE user_id = ?'
-    ).bind(userId).all();
-    return new Response(JSON.stringify(results), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } else if (request.method === 'POST') {
-    const { productId, quantity } = await request.json();
-    const { error } = await DB.prepare(
-      `INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?) ON CONFLICT (user_id, product_id) DO UPDATE SET quantity = excluded.quantity`
-    ).bind(userId, productId, quantity).run();
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  } else if (request.method === 'DELETE') {
-    const { productId } = await request.json();
-    const { error } = await DB.prepare(
-      'DELETE FROM cart_items WHERE user_id = ? AND product_id = ?'
-    ).bind(userId, productId).run();
-    if (error) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-  return new Response('Not found', { status: 404 });
-}
-
-// ==================== Admin Login ====================
-function hashKey(s) {
-  const crypto = require('crypto');
-  return crypto.createHash('sha256').update(String(s)).digest('hex').slice(0, 32);
-}
-
-function derive(password, saltBuf) {
-  return new Promise((resolve, reject) => {
-    const crypto = require('crypto');
-    crypto.scrypt(password, saltBuf, 64, { N: 16384, r: 8, p: 1 }, (err, dk) => {
-      if (err) reject(err);
-      else resolve(dk);
-    });
+function json(data, status = 200, extraHeaders = {}) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+      ...extraHeaders,
+    },
   });
 }
 
-// ==================== Admin Login Handler ====================
-export async function handleAdminLogin(request) {
-  if (request.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed.' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+function safeEqual(a, b) {
+  const A = Buffer.from(String(a));
+  const B = Buffer.from(String(b));
+  return A.length === B.length && timingSafeEqual(A, B);
+}
 
-  const adminEmail = ADMIN_EMAIL;
-  const adminHash = ADMIN_PASSWORD_HASH;
-  if (!adminEmail || !adminHash || !adminHash.includes(':')) {
-    return new Response(JSON.stringify({ error: 'Admin login is not configured on this deployment.' }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' },
-    });
+function deriveKey(password, salt) {
+  return new Promise((resolve, reject) => {
+    scrypt(password, salt, 64, { N: 16384, r: 8, p: 1 }, (err, key) =>
+      err ? reject(err) : resolve(key)
+    );
+  });
+}
+
+// ==================== Token signing / verification ====================
+function signToken(email, secret) {
+  const payload = Buffer.from(
+    JSON.stringify({ e: email, x: Date.now() + TOKEN_TTL_MS })
+  ).toString('base64url');
+  const sig = createHmac('sha256', secret).update(payload).digest('hex');
+  return `${payload}.${sig}`;
+}
+
+function verifyToken(token, secret) {
+  const [payload, sig] = String(token || '').split('.');
+  if (!payload || !sig) return null;
+  const expected = createHmac('sha256', secret).update(payload).digest('hex');
+  if (!safeEqual(sig, expected)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    return data && data.x > Date.now() ? data : null;
+  } catch {
+    return null;
+  }
+}
+
+// Returns null when authorised, or a Response to send back.
+function requireAdmin(request, env) {
+  if (!env.TOKEN_SECRET || !env.ADMIN_EMAIL) {
+    return json({ error: 'Admin is not configured on this deployment.' }, 503);
+  }
+  const header = request.headers.get('Authorization') || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : '';
+  const data = verifyToken(token, env.TOKEN_SECRET);
+  if (!data || String(data.e).toLowerCase() !== env.ADMIN_EMAIL.trim().toLowerCase()) {
+    return json({ error: 'Unauthorized.' }, 401);
+  }
+  return null;
+}
+
+// ==================== Admin login ====================
+async function handleAdminLogin(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
+
+  const hash = env.ADMIN_PASSWORD_HASH;
+  if (!env.ADMIN_EMAIL || !hash || !hash.includes(':') || !env.TOKEN_SECRET) {
+    return json({ error: 'Admin login is not configured on this deployment.' }, 503);
   }
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return new Response(JSON.stringify({ error: 'Bad request.' }), { status: 400 });
+    return json({ error: 'Bad request.' }, 400);
+  }
+
+  // Session check used by the admin page after a refresh: { action: 'verify', token }
+  if (body?.action === 'verify') {
+    const data = verifyToken(body.token, env.TOKEN_SECRET);
+    if (!data || String(data.e).toLowerCase() !== env.ADMIN_EMAIL.trim().toLowerCase()) {
+      return json({ ok: false }, 401);
+    }
+    return json({ ok: true, email: data.e });
+  }
+
+  // Brute-force limiter (per IP, stored in KV)
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const limitKey = `login-fail:${ip}`;
+  let fails = 0;
+  if (env.ADMIN_LIMITS_KV) {
+    fails = parseInt((await env.ADMIN_LIMITS_KV.get(limitKey)) || '0', 10);
+    if (fails >= MAX_FAILED_LOGINS) {
+      return json({ error: 'Too many attempts. Try again later.' }, 429);
+    }
   }
 
   const email = String(body?.email || '').trim().toLowerCase();
   const password = String(body?.password || '');
+  if (!email || !password) return json({ error: 'Invalid email or password.' }, 400);
 
-  if (!email || !password) {
-    return new Response(JSON.stringify({ error: 'Invalid email or password.' }), { status: 400 });
-  }
-
-  // scrypt verify
-  const [saltHex, hashHex] = adminHash.split(':');
   let ok = false;
   try {
-    const derived = await derive(password, Buffer.from(saltHex, 'hex'));
+    const [saltHex, hashHex] = hash.split(':');
+    const derived = await deriveKey(password, Buffer.from(saltHex, 'hex'));
     const expected = Buffer.from(hashHex, 'hex');
-    ok = expected.length === derived.length && 
-         crypto.timingSafeEqual(derived, expected) && 
-         email === adminEmail;
+    const passOk = expected.length === derived.length && timingSafeEqual(derived, expected);
+    const emailOk = safeEqual(email, env.ADMIN_EMAIL.trim().toLowerCase());
+    ok = passOk && emailOk;
   } catch {
     ok = false;
   }
 
   if (!ok) {
-    return new Response(JSON.stringify({ error: 'Invalid email or password.' }), { status: 401 });
+    if (env.ADMIN_LIMITS_KV) {
+      await env.ADMIN_LIMITS_KV.put(limitKey, String(fails + 1), {
+        expirationTtl: LOCKOUT_SECONDS,
+      });
+    }
+    return json({ error: 'Invalid email or password.' }, 401);
   }
 
-  // Successful login - issue a session token
-  const hmacKey = crypto.createHash('sha256').update(adminHash).digest();
-  const signToken = (email) => {
-    const payload = Buffer.from(JSON.stringify({ e: email, x: Date.now() + 8 * 60 * 60 * 1000 })).toString('base64url');
-    return `${payload}.${crypto.createHmac('sha256', hmacKey).update(payload).digest('hex')}`;
-  };
+  if (env.ADMIN_LIMITS_KV) await env.ADMIN_LIMITS_KV.delete(limitKey);
+  const token = signToken(email, env.TOKEN_SECRET);
+  return json({ ok: true, email, token });
+}
 
-  const token = signToken(email);
-  return new Response(JSON.stringify({ ok: true, email: adminEmail, token }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
+// ==================== Products ====================
+// GET is public. POST/PUT/DELETE require an admin token.
+async function handleProducts(request, env, url) {
+  const match = url.pathname.match(/^\/api\/products(?:\/([^/]+))?$/);
+  const pathId = match && match[1] ? decodeURIComponent(match[1]) : null;
+
+  if (request.method === 'GET') {
+    const { results } = await env.DB.prepare(
+      'SELECT id, data FROM app_products ORDER BY updated_at DESC'
+    ).all();
+    const products = results.map((row) => {
+      let parsed = {};
+      try {
+        parsed = JSON.parse(row.data);
+      } catch {
+        /* skip malformed row contents */
+      }
+      return { ...parsed, id: row.id };
+    });
+    return json(products);
+  }
+
+  if (request.method === 'POST' || request.method === 'PUT') {
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+
+    let body;
+    try {
+      body = await request.json();
+    } catch {
+      return json({ error: 'Bad request.' }, 400);
+    }
+
+    const items = Array.isArray(body) ? body : [body];
+    if (items.length === 0 || items.length > 200 || items.some((p) => !p || typeof p !== 'object')) {
+      return json({ error: 'Invalid product data.' }, 400);
+    }
+
+    const stmt = env.DB.prepare(
+      `INSERT INTO app_products (id, data) VALUES (?, ?)
+       ON CONFLICT (id) DO UPDATE SET data = excluded.data, updated_at = CURRENT_TIMESTAMP`
+    );
+    const ids = [];
+    const batch = items.map((p) => {
+      const id = String(p.id || pathId || crypto.randomUUID());
+      ids.push(id);
+      return stmt.bind(id, JSON.stringify({ ...p, id }));
+    });
+    await env.DB.batch(batch);
+    return json({ success: true, ids });
+  }
+
+  if (request.method === 'DELETE') {
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const id = pathId || url.searchParams.get('id');
+    if (!id) return json({ error: 'Missing product id.' }, 400);
+    await env.DB.prepare('DELETE FROM app_products WHERE id = ?').bind(id).run();
+    return json({ success: true });
+  }
+
+  return json({ error: 'Method not allowed.' }, 405);
+}
+
+// ==================== Cart ====================
+// Public. Each browser sends its own X-Cart-Id so carts are not shared.
+function cartOwner(request) {
+  const id = request.headers.get('X-Cart-Id') || '';
+  return /^[\w-]{8,64}$/.test(id) ? id : 'anonymous';
+}
+
+async function handleCart(request, env) {
+  const userId = cartOwner(request);
+
+  if (request.method === 'GET') {
+    const { results } = await env.DB.prepare(
+      'SELECT product_id, quantity FROM cart_items WHERE user_id = ?'
+    ).bind(userId).all();
+    return json(results);
+  }
+
+  let body = {};
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: 'Bad request.' }, 400);
+  }
+  const productId = String(body.productId || '');
+  if (!productId) return json({ error: 'Missing productId.' }, 400);
+
+  if (request.method === 'POST') {
+    const quantity = Math.max(1, Math.min(999, parseInt(body.quantity, 10) || 1));
+    await env.DB.prepare(
+      `INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)
+       ON CONFLICT (user_id, product_id) DO UPDATE SET quantity = excluded.quantity`
+    ).bind(userId, productId, quantity).run();
+    return json({ success: true });
+  }
+
+  if (request.method === 'DELETE') {
+    await env.DB.prepare(
+      'DELETE FROM cart_items WHERE user_id = ? AND product_id = ?'
+    ).bind(userId, productId).run();
+    return json({ success: true });
+  }
+
+  return json({ error: 'Method not allowed.' }, 405);
+}
+
+// ==================== Images ====================
+// The browser compresses the image first (Workers have no canvas).
+function toBase64(bytes) {
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  }
+  return btoa(binary);
+}
+
+async function handleUpload(request, env) {
+  if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
+  const denied = requireAdmin(request, env);
+  if (denied) return denied;
+
+  let form;
+  try {
+    form = await request.formData();
+  } catch {
+    return json({ error: 'Bad request.' }, 400);
+  }
+  const file = form.get('file');
+  if (!file || typeof file === 'string') return json({ error: 'No file provided.' }, 400);
+  if (!/^image\/(jpeg|png|webp)$/.test(file.type)) {
+    return json({ error: 'Only JPEG, PNG or WebP images are allowed.' }, 415);
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return json({ error: 'Image too large. Compress it to under 1.5 MB first.' }, 413);
+  }
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const id = crypto.randomUUID();
+  await env.DB.prepare('INSERT INTO images (id, content_type, data) VALUES (?, ?, ?)')
+    .bind(id, file.type, toBase64(bytes))
+    .run();
+  return json({ success: true, publicUrl: `/api/images/${id}` });
+}
+
+async function handleImage(request, env, url) {
+  const id = url.pathname.split('/').pop();
+  const row = await env.DB.prepare('SELECT content_type, data FROM images WHERE id = ?')
+    .bind(id)
+    .first();
+  if (!row) return json({ error: 'Not found.' }, 404);
+  const binary = atob(row.data);
+  const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0));
+  return new Response(bytes, {
+    headers: {
+      'Content-Type': row.content_type,
+      'Cache-Control': 'public, max-age=31536000, immutable',
+    },
   });
 }
 
-// ==================== Main Fetch Handler ====================
-export default {
-  async fetch(request, env, ctx) {
+// ==================== Router ====================
+// Dev-only CORS: applies only when the Worker itself is served from localhost
+// (wrangler dev) and the calling page is also on localhost. Production is
+// same-origin, so no CORS headers are ever added there.
+const LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+function devCorsHeaders(request) {
+  const host = new URL(request.url).hostname;
+  const origin = request.headers.get('Origin') || '';
+  if (!['localhost', '127.0.0.1'].includes(host) || !LOCAL_ORIGIN.test(origin)) return null;
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Cart-Id',
+    'Access-Control-Max-Age': '86400',
+    Vary: 'Origin',
+  };
+}
+
+async function route(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Initialize DB from env if not already done
-    if (!DB && env.DB) {
-      DB = env.DB;
-    }
+    try {
+      if (path === '/api/health') return json({ ok: true });
+      if (path === '/api/admin-login') return await handleAdminLogin(request, env);
+      if (path === '/api/products' || path.startsWith('/api/products/')) {
+        return await handleProducts(request, env, url);
+      }
+      if (path === '/api/cart') return await handleCart(request, env);
+      if (path === '/api/upload') return await handleUpload(request, env);
+      if (path.startsWith('/api/images/')) return await handleImage(request, env, url);
 
-    // Route handlers
-    if (path === '/api/products') {
-      return handleProducts(request);
-    }
-    if (path === '/api/cart') {
-      return handleCart(request);
-    }
-    if (path === '/api/admin-login') {
-      return handleAdminLogin(request);
-    }
-    if (path === '/api/health') {
-      return handleHealth();
-    }
+      if (path.startsWith('/api/')) return json({ error: 'Not found.' }, 404);
 
-    // For React Router - return JSON API error for non-API routes
-    if (path !== '/' && !path.startsWith('/api/')) {
-      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+      // Everything else is the React site
+      return env.ASSETS.fetch(request);
+    } catch (err) {
+      console.error('Unhandled error:', err && err.stack ? err.stack : err);
+      return json({ error: 'Server error.' }, 500);
     }
+}
 
-    return new Response('Not found', { status: 404 });
+export default {
+  async fetch(request, env) {
+    const cors = devCorsHeaders(request);
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: cors || {} });
+    }
+    const response = await route(request, env);
+    if (!cors) return response;
+    const withCors = new Response(response.body, response);
+    for (const [key, value] of Object.entries(cors)) withCors.headers.set(key, value);
+    return withCors;
   },
 };
