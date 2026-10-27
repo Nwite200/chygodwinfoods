@@ -6,13 +6,17 @@ compatibility_flags = ["nodejs_compat"]
 script = "worker.js"
 
 [d1]
-binding = "DB"  # used in your code to refer to your database
+binding = "DB"
 database_name = "chygodwinfoods"
 path = "./d1.sqlite"
 
 [env.production]
-ADMIN_EMAIL = "chygodwinfoods@gmail.com"
+ADMIN_EMAIL = "chygodwinfoodstuffs@gmail.com"
 ADMIN_PASSWORD_HASH = "a1cc34df791b1b48371292a73545297db5072e1ad90697f4a2a6d44f6783a5b9:35e2fa8261058af6d201246b009f4b96c768d7fedba4d8bf2942d2f472446ce6"
+
+[[kv_namespaces]]
+binding = "ADMIN_LIMITS_KV"
+id = "87b134c887d34afba5da0a26eb3c6a7b"
 
 [assets]
 directory = "./dist"
