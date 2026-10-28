@@ -1,38 +1,38 @@
-# React + Vite
+# Chygodwin Foodstuffs
 
-## Google sign-in setup
+React + Vite storefront, served by a single Cloudflare Worker (`worker.js`) that
+also provides the API (products, shopper accounts, carts, orders, admin login)
+on Cloudflare D1 and KV. The site used to run on Supabase; the website no longer
+uses it.
 
-The account page uses Supabase Auth with Google OAuth. Copy `.env.example` to `.env.local` and set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` from the Supabase project API settings. Only the publishable key belongs in client-side environment variables; never use the Supabase secret key in a `VITE_` variable.
+See [`DEPLOY_STEPS.md`](./DEPLOY_STEPS.md) for local development and deployment.
 
-In Supabase, enable Google under **Authentication → Sign In / Providers**, then set the **Site URL** to `https://chygodwinfoods.netlify.app` and allow these redirect URLs:
+## What lives where
 
-- `https://chygodwinfoods.netlify.app/`
-- `http://localhost:5173/`
+| Thing | Where |
+|---|---|
+| Products, carts, orders, shopper accounts | Cloudflare D1 (`migrations/`) |
+| Admin login lockout counters | Cloudflare KV (`ADMIN_LIMITS_KV`) |
+| Admin password hash, token signing key | Cloudflare secrets (`wrangler secret put`) |
+| Product images uploaded in the admin console | D1 `images` table, served at `/api/images/:id` |
 
-Add the Supabase callback URL (`https://YOUR_PROJECT_REF.supabase.co/auth/v1/callback`) to the authorized redirect URIs in the Google OAuth client. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` to the Netlify project's environment variables, then trigger a new deploy.
+Shoppers sign in with email and password. Google sign-in was removed with Supabase.
 
-## Mobile app cart sharing
+## Mobile app (`chygodwin-mobile/`)
 
-The Expo application lives in [`chygodwin-mobile/`](./chygodwin-mobile/). To enable its shared cart on the website and in the app:
+The Expo app was **not** migrated. It still signs in and keeps its shared cart in
+Supabase, so accounts and carts are no longer shared with the website. Shoppers
+who register on the website have a separate account from the mobile app. Moving
+the app to the Worker API needs its own change.
 
-1. Run [`chygodwin-mobile/supabase/cart_schema.sql`](./chygodwin-mobile/supabase/cart_schema.sql) in the Supabase SQL editor.
-2. Configure the mobile app's `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` with the same Supabase project used by the website.
-3. Sign in to both clients with the same Supabase account. The website supports Google OAuth and email/password; the mobile app supports email/password.
-4. Deploy the updated website and set the same two `EXPO_PUBLIC_...` values in EAS for Android preview builds. See [`chygodwin-mobile/README.md`](./chygodwin-mobile/README.md) for APK build instructions.
+## Moving existing products from Supabase
 
-Checkout currently continues from the mobile app to the website. The website's existing checkout is a demonstration flow and does not process real card payments or persist production orders.
+1. In the Supabase SQL editor run `select json_agg(app_products) from app_products;`
+   and save the result as `products-export.json`.
+2. `node scripts/import-products.mjs products-export.json > import.sql`
+3. `npx wrangler d1 execute chygodwinfoods --remote --file=import.sql`
+   (use `--local` to try it on your local database first).
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Checkout saves orders to D1, but it is still a demonstration flow: it does not
+take card payments, and order totals are calculated in the browser, so check them
+before fulfilling an order.

@@ -194,6 +194,7 @@ export default function AdminView({
   onDeleteProduct,
   onResetProducts,
   orders = [],
+  onLoadOrders,
   onUpdateOrderStatus,
   onNavigate
 }) {
@@ -207,6 +208,12 @@ export default function AdminView({
   const [sessionChecking, setSessionChecking] = useState(true);
   const [adminSessionEmail, setAdminSessionEmail] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  // Once signed in, load every saved order from the Worker.
+  useEffect(() => {
+    if (isAuthenticated && onLoadOrders) onLoadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   // Restore session: token is HMAC-signed by the server (forging it client-side
   // is impossible), so this check also runs against the function.

@@ -19,7 +19,6 @@ export default function AccountView({
   authLoading,
   authConfigured,
   authError,
-  onGoogleSignIn,
   onEmailSignIn,
   onEmailRegister,
   onSignOut,
@@ -90,19 +89,9 @@ export default function AccountView({
             )}
             {!authConfigured && (
               <p role="status" style={{ color: 'var(--text-muted)', marginBottom: 16 }}>
-                Google sign-in is not configured for this deployment yet.
+                Sign-in is not available on this deployment yet.
               </p>
             )}
-            <button
-              className="btn-primary-pill"
-              style={{ justifyContent: 'center' }}
-              onClick={onGoogleSignIn}
-              disabled={!authConfigured}
-            >
-              <LogIn size={18} />
-              Continue with Google
-            </button>
-            <div style={{ margin: '24px 0 16px', color: 'var(--text-muted)', fontSize: '0.85rem' }}>or use email</div>
             <form onSubmit={handleEmailAuth} style={{ textAlign: 'left' }}>
               <label htmlFor="account-email" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, marginBottom: 6 }}>
                 Email
