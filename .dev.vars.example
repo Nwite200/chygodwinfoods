@@ -1,0 +1,3 @@
+# Copy to .dev.vars (which must be in .gitignore). Used only by `wrangler dev`.
+ADMIN_PASSWORD_HASH=paste-output-of-make-admin-hash.js
+TOKEN_SECRET=paste-output-of-openssl-rand-hex-32

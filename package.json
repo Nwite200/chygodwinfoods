@@ -5,12 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "api": "wrangler dev",
+    "db:local": "wrangler d1 migrations apply chygodwinfoods --local",
+    "setup:dev-vars": "node scripts/setup-dev-vars.mjs",
+    "check:login": "node scripts/check-login.mjs",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.109.0",
     "canvas-confetti": "^1.9.4",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.50.0",

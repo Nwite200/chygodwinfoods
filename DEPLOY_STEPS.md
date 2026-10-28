@@ -1,102 +1,40 @@
-# 📤 Cloudflare Deployment Guide
+# Cloudflare deployment (Worker + static site)
 
-## Prerequisites
-Your project is at `/Users/a/Desktop/untitled folder 3` with all migration changes already in place.
+The site and the API are one Cloudflare Worker (`worker.js`). `npm run build`
+creates `dist/`, which the Worker serves; `/api/*` is handled by the Worker.
 
-## Step 1: Install Dependencies
-```bash
-cd /Users/a/Desktop/untitled\ folder\ 3
-npm install
-```
+## Local development
 
-## Step 2: Login to Cloudflare (first time only)
-```bash
-npx wrangler login
-```
-*This opens a browser window for Cloudflare authentication.*
+1. `npm install`
+2. Create your local secrets (once, or whenever you change the password):
+   `node scripts/setup-dev-vars.mjs 'a long new password'`
+   This writes `.dev.vars` (git-ignored) with a password hash and a random token secret.
+3. `npm run db:local`  (creates the local D1 tables from `migrations/`)
+4. Terminal A: `npm run api`   (Worker on http://localhost:8787)
+   Terminal B: `npm run dev`   (Vite; proxies `/api` to the Worker)
+5. Check config problems: `node scripts/check-login.mjs "chygodwinfoods@gmail.com" 'your password'`
 
-## Step 3: Publish to Cloudflare Pages
-```bash
-npx wrangler publish
-```
-*Or deploy dist/ specifically:*
-```bash
-npx wrangler pages publish dist/
-```
+Leave `VITE_API_BASE_URL` empty in `.env` so every call is same-origin.
+Never put passwords or hashes in any `VITE_*` variable or in `wrangler.toml`:
+they are either shipped to every visitor or committed to git.
 
-## Step 4: Set Environment Variables in Cloudflare Dashboard
-After deployment, go to **Cloudflare Dashboard → Pages → Your Project → Settings → Environment Variables** and add:
+## First deploy
 
-| Variable | Value |
-|----------|-------|
-| `ADMIN_EMAIL` | `chygodwinfoodstuffs@gmail.com` |
-| `ADMIN_PASSWORD_HASH` | `a1cc34df791b1b48371292a73545297db5072e1ad90697f4a2a6d44f6783a5b9:35e2fa8261058af6d201246b009f4b96c768d7fedba4d8bf2942d2f472446ce6` |
-| `ADMIN_LIMITS_KV` | *(bind a KV namespace for rate limiting)* |
+1. `npx wrangler login`
+2. `npx wrangler d1 create chygodwinfoods`, then paste the printed `database_id`
+   into `wrangler.toml`.
+3. `npx wrangler d1 migrations apply chygodwinfoods --remote`
+4. Set production secrets (use the same password hash as above, and a *different*
+   random token secret from `openssl rand -hex 32`):
+   - `npx wrangler secret put ADMIN_PASSWORD_HASH`
+   - `npx wrangler secret put TOKEN_SECRET`
+5. `npm run build && npx wrangler deploy`
+   (or push to GitHub and let the Cloudflare build run these).
 
-## Step 5: Update Frontend .env with Deployed URL
-Your `.env` already has `VITE_API_BASE_URL=http://localhost:5173`. Update it to your deployed URL:
+`ADMIN_EMAIL` is a plain variable in `wrangler.toml`. The `ADMIN_LIMITS_KV`
+binding is also declared there; it is not an environment variable.
 
-```env
-VITE_API_BASE_URL=https://your-subdomain.pages.dev
-# OR
-VITE_API_BASE_URL=https://your-worker-name.workers.dev
-```
+## After deploying
 
-## Step 6: Test the Full Admin Flow
-1. Visit your deployed URL
-2. Navigate to Admin Console
-3. Login with:
-   - **Email:** `chygodwinfoodstuffs@gmail.com`
-   - **Password:** `ChyAdmin2024!`
-4. Test operations:
-   - Upload product with image → routes to Worker `/api/upload`
-   - Edit product prices → updates catalog
-   - Add new products → persists to Cloudflare D1 database
-
-## 🔧 Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| "Admin login is not configured" | Ensure `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` are set in Cloudflare dashboard |
-| Image upload fails | Verify `ADMIN_LIMITS_KV` KV namespace is bound |
-| 404 on API routes | Check `wrangler publish` completed successfully |
-| VITE_API_BASE_URL not working | Redeploy after updating .env, or restart dev server |
-| Local dev not working | Run `npm run dev` - fallback to `.env` creds if function unreachable |
-
-## ✅ What's Already Complete
-
-| Component | Status |
-|-----------|--------|
-| `worker.js` | ✅ Routes + product/cart/upload APIs |
-| `AdminView.jsx` | ✅ Uses Cloudflare Worker `/api/upload` |
-| `.env` | ✅ `VITE_API_BASE_URL`, admin creds configured |
-| `functions/api/admin-login.js` | ✅ Cloudflare Pages Function with scrypt + rate limiting |
-| `src/supabase.js` | ✅ Configured as Workers API replacement |
-| Git remote | ✅ `origin: https://github.com/Nwite200/chygodwinfoods.git` |
-
-## 📋 Quick Commands Summary
-
-```bash
-# 1. Install
-cd /Users/a/Desktop/untitled\ folder\ 3 && npm install
-
-# 2. Login to Cloudflare
-npx wrangler login
-
-# 3. Publish
-npx wrangler publish
-
-# 4. Set env vars in Cloudflare dashboard (as shown above)
-
-# 5. Update .env with deployed URL
-#    VITE_API_BASE_URL=https://your-url.dev
-```
-
-## 🎯 Next Steps
-
-1. Run the commands above in order
-2. Set the Cloudflare environment variables in the dashboard
-3. Update your frontend `.env` with the deployed URL
-4. Test the admin functionality
-
-The migration infrastructure is fully ready - all code changes are in place, you just need to deploy and configure the Cloudflare dashboard variables.
+Log in at the admin console, then confirm an admin write with a valid token
+succeeds and the same call with a missing or altered token returns 401.

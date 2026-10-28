@@ -12,7 +12,7 @@ import MobilePhoneMockup from './views/MobilePhoneMockup';
 import WhatsAppChat from './components/WhatsAppChat';
 import { PRODUCTS, INITIAL_ORDERS } from './data/products';
 import { Check } from 'lucide-react';
-import { isSupabaseConfigured, supabase } from './supabase';
+import { isSupabaseConfigured, supabase, orderApi } from './supabase';
 
 const getIsoTimestamp = () => new Date().toISOString();
 
@@ -405,8 +405,43 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleOrderPlaced = (newOrder) => {
+  const mergeOrders = useCallback((incoming) => {
+    setOrders((prev) => {
+      const byId = new Map(prev.map((o) => [o.id, o]));
+      for (const order of incoming) byId.set(order.id, { ...byId.get(order.id), ...order });
+      return Array.from(byId.values());
+    });
+  }, []);
+
+  // Shoppers see their saved orders after signing in (or refreshing).
+  useEffect(() => {
+    if (!user?.id) return undefined;
+    let isMounted = true;
+    orderApi.listMine().then(({ data }) => {
+      if (isMounted && Array.isArray(data)) mergeOrders(data);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, mergeOrders]);
+
+  // The admin console asks for every order once the admin is signed in.
+  const handleLoadAdminOrders = useCallback(async () => {
+    const { data, error } = await orderApi.listAll();
+    if (error) {
+      showToast(`Unable to load orders: ${error.message}`);
+      return;
+    }
+    mergeOrders(data || []);
+  }, [mergeOrders, showToast]);
+
+  const handleOrderPlaced = async (newOrder) => {
     setOrders((prev) => [newOrder, ...prev]);
+    const { error } = await orderApi.create(newOrder);
+    if (error) {
+      showToast(`Order #${newOrder.id} created, but it could not be saved: ${error.message}`);
+      return;
+    }
     showToast(`Order #${newOrder.id} successfully created!`);
   };
 
@@ -440,29 +475,16 @@ export default function App() {
     showToast(`Catalog reset to official product list (${PRODUCTS.length} items)`);
   };
 
-  const handleUpdateOrderStatus = (orderId, newStatus) => {
+  const handleUpdateOrderStatus = async (orderId, newStatus) => {
+    const { error } = await orderApi.updateStatus(orderId, newStatus);
+    if (error) {
+      showToast(`Could not update order #${orderId}: ${error.message}`);
+      return;
+    }
     setOrders((prev) =>
       prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
     );
     showToast(`Order #${orderId} marked as ${newStatus}`);
-  };
-
-  const handleGoogleSignIn = async () => {
-    setAuthError('');
-    if (!supabase) {
-      setAuthError('Google sign-in is not configured for this deployment.');
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: window.location.origin }
-      });
-      if (error) setAuthError(error.message);
-    } catch {
-      setAuthError('Unable to start Google sign-in. Please try again.');
-    }
   };
 
   const handleEmailSignIn = async (email, password) => {
@@ -499,7 +521,7 @@ export default function App() {
         return false;
       }
       if (!data.session) {
-        setAuthError('Check your email for a confirmation link, then sign in on both devices with this account.');
+        setAuthError('Your account was created. Please sign in.');
         return false;
       }
       return true;
@@ -638,7 +660,6 @@ export default function App() {
             authLoading={authLoading}
             authConfigured={isSupabaseConfigured}
             authError={authError}
-            onGoogleSignIn={handleGoogleSignIn}
             onEmailSignIn={handleEmailSignIn}
             onEmailRegister={handleEmailRegister}
             onSignOut={handleSignOut}
@@ -654,6 +675,7 @@ export default function App() {
             onDeleteProduct={handleDeleteProduct}
             onResetProducts={handleResetProducts}
             orders={orders}
+            onLoadOrders={handleLoadAdminOrders}
             onUpdateOrderStatus={handleUpdateOrderStatus}
             onNavigate={setActiveView}
           />

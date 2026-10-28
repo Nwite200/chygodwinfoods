@@ -1,15 +1,28 @@
 name = "chygodwinfoods"
 main = "worker.js"
 compatibility_date = "2026-10-01"
+compatibility_flags = ["nodejs_compat"]
 
 [assets]
 directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
+# Always run the Worker for API calls instead of the SPA fallback
+run_worker_first = ["/api/*"]
 
 [[kv_namespaces]]
 binding = "ADMIN_LIMITS_KV"
 id = "87b134c887d34afba5da0a26eb3c6a7b"
 
+[[d1_databases]]
+binding = "DB"
+database_name = "chygodwinfoods"
+database_id = "d9fa86dd-1746-451c-91b5-9219b8ed71ad"
+migrations_dir = "migrations"
+
 [vars]
-ADMIN_EMAIL = "chygodwinfoodstuffs@gmail.com"
+ADMIN_EMAIL = "chygodwinfoods@gmail.com"
+
+# Secrets are NOT stored here. Set them with:
+#   npx wrangler secret put ADMIN_PASSWORD_HASH
+#   npx wrangler secret put TOKEN_SECRET
