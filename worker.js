@@ -118,10 +118,22 @@ function bearer(request) {
   return header.startsWith('Bearer ') ? header.slice(7) : '';
 }
 
+// Dashboard pastes sometimes add quotes or spaces around a value; ignore them.
+function cleanValue(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/^(['"])([\s\S]*)\1$/, '$2')
+    .trim();
+}
+
+const adminEmailOf = (env) => cleanValue(env.ADMIN_EMAIL).toLowerCase();
+const HEX_RE = /^[0-9a-f]+$/i;
+
 function adminClaims(token, env) {
   const data = verifyToken(token, env.TOKEN_SECRET);
-  if (!data || data.r !== 'admin' || !env.ADMIN_EMAIL) return null;
-  return String(data.e).toLowerCase() === env.ADMIN_EMAIL.trim().toLowerCase() ? data : null;
+  const adminEmail = adminEmailOf(env);
+  if (!data || data.r !== 'admin' || !adminEmail) return null;
+  return String(data.e).toLowerCase() === adminEmail ? data : null;
 }
 
 function customerClaims(request, env) {
@@ -131,7 +143,7 @@ function customerClaims(request, env) {
 
 // Returns null when authorised, or a Response to send back.
 function requireAdmin(request, env) {
-  if (!env.TOKEN_SECRET || !env.ADMIN_EMAIL) {
+  if (!env.TOKEN_SECRET || !adminEmailOf(env)) {
     return json({ error: 'Admin is not configured on this deployment.' }, 503);
   }
   return adminClaims(bearer(request), env) ? null : json({ error: 'Unauthorized.' }, 401);
@@ -141,8 +153,20 @@ function requireAdmin(request, env) {
 async function handleAdminLogin(request, env) {
   if (request.method !== 'POST') return json({ error: 'Method not allowed.' }, 405);
 
-  const hash = env.ADMIN_PASSWORD_HASH;
-  if (!env.ADMIN_EMAIL || !hash || !hash.includes(':') || !env.TOKEN_SECRET) {
+  const hash = cleanValue(env.ADMIN_PASSWORD_HASH);
+  const adminEmail = adminEmailOf(env);
+  const [saltHex = '', hashHex = ''] = hash.split(':');
+  const hashShape = {
+    hasEmail: Boolean(adminEmail),
+    hasTokenSecret: Boolean(env.TOKEN_SECRET),
+    hashPresent: hash.length > 0,
+    saltHexChars: saltHex.length,
+    keyHexChars: hashHex.length,
+    isHex: HEX_RE.test(saltHex) && HEX_RE.test(hashHex),
+  };
+  if (!hashShape.hasEmail || !hashShape.hasTokenSecret || !hashShape.hashPresent || !hashShape.isHex) {
+    // Lengths and yes/no flags only: no secret values are ever logged.
+    console.warn('admin-login: not configured', JSON.stringify(hashShape));
     return json({ error: 'Admin login is not configured on this deployment.' }, 503);
   }
 
@@ -164,9 +188,12 @@ async function handleAdminLogin(request, env) {
   if (!email || !password) return json({ error: 'Invalid email or password.' }, 400);
 
   const passOk = await verifyPassword(password, hash);
-  const emailOk = safeEqual(email, env.ADMIN_EMAIL.trim().toLowerCase());
+  const emailOk = safeEqual(email, adminEmail);
 
   if (!(passOk && emailOk)) {
+    // Shows in your Cloudflare logs only (never sent to the browser): which check
+    // failed, and the stored value's shape (a correct key is 128 hex characters).
+    console.warn('admin-login: rejected', JSON.stringify({ emailOk, passOk, ...hashShape }));
     await bumpCount(env, limitKey, fails, LOCKOUT_SECONDS);
     return json({ error: 'Invalid email or password.' }, 401);
   }
@@ -204,7 +231,7 @@ async function handleSignup(request, env) {
   if (password.length < 8 || password.length > 128) {
     return json({ error: 'Password must be 8 to 128 characters.' }, 400);
   }
-  if (env.ADMIN_EMAIL && email === env.ADMIN_EMAIL.trim().toLowerCase()) {
+  if (adminEmailOf(env) && email === adminEmailOf(env)) {
     return json({ error: 'This email cannot be used for a shopper account.' }, 400);
   }
 
